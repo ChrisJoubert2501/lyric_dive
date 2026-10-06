@@ -47,6 +47,11 @@ export function usePlayback() {
   const seek = useCallback(async (positionMs: number) => {
     setStatus(await invoke<PlaybackStatus>("seek", { positionMs }));
   }, []);
+  const refresh = useCallback(async () => {
+    const next = await invoke<PlaybackStatus>("playback_status");
+    setStatus(next);
+    return next;
+  }, []);
 
-  return { status, load, play, pause, seek };
+  return { status, load, play, pause, seek, refresh };
 }

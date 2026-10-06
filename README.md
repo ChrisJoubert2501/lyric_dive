@@ -37,12 +37,12 @@ The frontend tests, type check and lint only need Node, so they work without the
 
 ## Project layout
 
-| Path          | Purpose                                                           |
-| ------------- | ----------------------------------------------------------------- |
-| `src/lyrics/` | Lyrics data model and LRC import/export. Pure TypeScript, no UI.  |
-| `src/audio/`  | React hook that controls playback in Rust and polls its position. |
-| `src/App.tsx` | Application shell.                                                |
-| `src-tauri/`  | Rust side: window, file dialog, MP3 decoding and audio playback.  |
+| Path          | Purpose                                                                            |
+| ------------- | ---------------------------------------------------------------------------------- |
+| `src/lyrics/` | Lyrics data model, project edits, LRC import/export, and the lyrics UI.            |
+| `src/audio/`  | Playback controls, and a hook that drives playback in Rust and polls its position. |
+| `src/App.tsx` | Application shell: holds the project state and the keyboard shortcuts.             |
+| `src-tauri/`  | Rust side: window, file dialog, MP3 decoding and audio playback.                   |
 
 ## Design decisions
 

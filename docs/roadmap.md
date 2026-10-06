@@ -23,13 +23,15 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 
 **Goal:** synchronise a whole song by hand, end to end.
 
-- Paste lyrics and split them into lines; edit, insert, delete and reorder lines
-- Edit title, artist and album manually
-- Tap a key during playback to timestamp the selected line and advance to the next
-- Click a line to seek to it; nudge a timestamp by small steps (e.g. ±50 ms)
-- Highlight and scroll to the active line during playback
-- Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md)), including relinking a missing MP3
-- Import and export LRC
+- [x] Paste lyrics and split them into lines
+- [x] Tap a key during playback to timestamp the selected line and advance to the next
+- [x] Click a line to seek to it
+- [x] Highlight and scroll to the active line during playback
+- [ ] Nudge a timestamp by small steps (e.g. ±50 ms), and clear it
+- [ ] Edit, insert, delete and reorder lines
+- [ ] Edit title, artist and album manually
+- [ ] Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md)), including relinking a missing MP3
+- [ ] Import and export LRC
 
 **Done when:** a real song can be loaded, synced line by line, saved, reopened, and exported as an LRC file that plays correctly in another player.
 
