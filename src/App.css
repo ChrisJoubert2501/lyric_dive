@@ -104,6 +104,11 @@ body {
   color: #d33;
 }
 
+.notice {
+  margin: 0.75rem 0 0;
+  opacity: 0.8;
+}
+
 .lyrics {
   margin-top: 2rem;
   max-width: 40rem;

@@ -2,7 +2,7 @@
 
 Each phase has a goal and a "done when" condition. A phase is finished when its condition is met, not when every listed feature exists; features that turn out to be unnecessary get dropped, and new ones get added as we learn.
 
-**Current phase: 1 — Core sync loop (MVP)**
+**Current phase: 2 — Editing comfort**
 
 ## Phase 0 — Foundation
 
@@ -31,7 +31,7 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Edit, insert, delete and reorder lines, and replace all lyrics
 - [x] Edit title, artist and album manually
 - [x] Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md), [ADR 0007](decisions/0007-project-file-access-through-rust.md)), including relinking a missing MP3
-- [ ] Import and export LRC
+- [x] Import and export LRC
 
 **Done when:** a real song can be loaded, synced line by line, saved, reopened, and exported as an LRC file that plays correctly in another player.
 

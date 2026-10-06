@@ -5,6 +5,11 @@ export type ProjectAction =
   | { type: "audioLinked"; path: string }
   | { type: "metadataChanged"; field: keyof SongMetadata; value: string }
   | { type: "linesReplaced"; lines: LyricLine[] }
+  | {
+      type: "lyricsImported";
+      lines: LyricLine[];
+      metadata: Partial<SongMetadata>;
+    }
   | { type: "lineInserted"; line: LyricLine; index: number }
   | { type: "lineDeleted"; id: LineId }
   | { type: "lineMoved"; id: LineId; offset: -1 | 1 }
@@ -29,6 +34,12 @@ export function projectReducer(
       };
     case "linesReplaced":
       return { ...project, lines: action.lines };
+    case "lyricsImported":
+      return {
+        ...project,
+        lines: action.lines,
+        metadata: { ...project.metadata, ...action.metadata },
+      };
     case "lineInserted":
       return {
         ...project,

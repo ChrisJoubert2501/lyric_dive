@@ -81,9 +81,9 @@ export function parseLrc(source: string): ParsedLrc {
 }
 
 /**
- * Untimed lines are omitted because LRC has no way to represent them.
- * Timestamps are written in hundredths of a second, so millisecond precision
- * is rounded to the nearest 10 ms.
+ * Lines in `linesOmittedFromLrc` are left out. Timestamps are written in
+ * hundredths of a second, so millisecond precision is rounded to the nearest
+ * 10 ms.
  */
 export function serializeLrc(
   project: Pick<LyricProject, "metadata" | "lines">,
@@ -96,9 +96,7 @@ export function serializeLrc(
   }
 
   const timed = project.lines
-    .filter(
-      (line): line is LyricLine & { startMs: number } => line.startMs !== null,
-    )
+    .filter(isExportable)
     .sort((a, b) => a.startMs - b.startMs);
 
   timed.forEach((line, index) => {
@@ -110,6 +108,20 @@ export function serializeLrc(
   });
 
   return output.join("\n") + "\n";
+}
+
+/**
+ * LRC has no way to represent an untimed line, and a timed line without text
+ * would be read back as the previous line's end time.
+ */
+export function linesOmittedFromLrc(lines: LyricLine[]): LyricLine[] {
+  return lines.filter((line) => !isExportable(line));
+}
+
+function isExportable(
+  line: LyricLine,
+): line is LyricLine & { startMs: number } {
+  return line.startMs !== null && line.text.trim() !== "";
 }
 
 export function formatLrcTimestamp(ms: number): string {

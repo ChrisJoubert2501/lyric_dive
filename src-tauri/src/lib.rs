@@ -1,6 +1,6 @@
 mod audio;
+mod files;
 mod playback;
-mod project;
 
 use std::sync::Mutex;
 
@@ -17,8 +17,9 @@ pub fn run() {
             playback::pause,
             playback::seek,
             playback::playback_status,
-            project::read_project,
-            project::write_project,
+            files::read_project,
+            files::read_text_file,
+            files::write_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

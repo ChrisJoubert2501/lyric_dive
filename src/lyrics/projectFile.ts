@@ -59,12 +59,15 @@ export function parseProject(json: string): LyricProject {
   };
 }
 
-export function suggestedFileName(metadata: SongMetadata): string {
+export function suggestedFileName(
+  metadata: SongMetadata,
+  extension: string,
+): string {
   const name = [metadata.artist, metadata.title]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(" - ");
-  return `${(name || "Untitled").replace(/[\\/:*?"<>|]/g, "_")}.lyricdive.json`;
+  return `${(name || "Untitled").replace(/[\\/:*?"<>|]/g, "_")}${extension}`;
 }
 
 function parseLine(value: unknown, path: string): LyricLine {

@@ -11,11 +11,11 @@ Reopening a project breaks that rule. The user picks the project file, not the M
 
 ## Decision
 
-Implemented in `src-tauri/src/project.rs` and `src/lyrics/projectFile.ts`:
+Implemented in `src-tauri/src/files.rs` and `src/lyrics/projectFile.ts`:
 
-- Two Rust commands, `read_project` and `write_project`, read and write project files. Both only accept paths in the fs scope, which in practice means files the user chose in an open or save dialog.
+- Rust commands read and write project files (`read_project`, `write_text_file`) and other text files such as LRC (`read_text_file`, `write_text_file`). All of them only accept paths in the fs scope, which in practice means files the user chose in an open or save dialog.
 - When `read_project` reads a project, it adds the project's `audioPath` to the scope, but only if it is an absolute path. The scope escapes the path, so a path containing wildcards grants only that literal file.
-- `write_project` writes a temporary file next to the target and renames it into place, so a failed save leaves the previous version intact.
+- `write_text_file` writes a temporary file next to the target and renames it into place, so a failed save leaves the previous version intact.
 - Rust passes the file's text through unvalidated. The frontend owns the project model, so it validates every field on load (`parseProject`) and reports the first problem with the field's path, e.g. `lines[3].startMs must be a whole number of milliseconds, 0 or more`.
 - If the audio cannot be loaded (e.g. it was moved), the app shows the error with a "Locate MP3…" button. A file picked there is in the scope through the dialog, and linking it marks the project as changed.
 

@@ -116,16 +116,31 @@ describe("parseProject", () => {
 describe("suggestedFileName", () => {
   it("names the file after the artist and title", () => {
     expect(
-      suggestedFileName({ title: "Song", artist: "Band", album: "" }),
+      suggestedFileName(
+        { title: "Song", artist: "Band", album: "" },
+        ".lyricdive.json",
+      ),
     ).toBe("Band - Song.lyricdive.json");
   });
 
+  it("uses the given extension", () => {
+    expect(
+      suggestedFileName({ title: "Song", artist: "", album: "" }, ".lrc"),
+    ).toBe("Song.lrc");
+  });
+
   it("falls back to Untitled and replaces characters that are invalid in file names", () => {
-    expect(suggestedFileName({ title: " ", artist: "", album: "" })).toBe(
-      "Untitled.lyricdive.json",
-    );
-    expect(suggestedFileName({ title: "A/B: C?", artist: "", album: "" })).toBe(
-      "A_B_ C_.lyricdive.json",
-    );
+    expect(
+      suggestedFileName(
+        { title: " ", artist: "", album: "" },
+        ".lyricdive.json",
+      ),
+    ).toBe("Untitled.lyricdive.json");
+    expect(
+      suggestedFileName(
+        { title: "A/B: C?", artist: "", album: "" },
+        ".lyricdive.json",
+      ),
+    ).toBe("A_B_ C_.lyricdive.json");
   });
 });

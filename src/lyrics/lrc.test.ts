@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatLrcTimestamp,
+  linesOmittedFromLrc,
   parseLrc,
   parseLrcTimestamp,
   serializeLrc,
@@ -69,12 +70,30 @@ describe("parseLrc", () => {
     ]);
   });
 
+  it("ignores a UTF-8 byte order mark at the start of the file", () => {
+    const parsed = parseLrc("\uFEFF[ti:Song]\n[00:01.00]a\n");
+
+    expect(parsed.metadata.title).toBe("Song");
+    expect(parsed.lines.map((line) => line.text)).toEqual(["a"]);
+  });
+
   it("ignores lines without timestamps and unknown tags", () => {
     const result = parseLrc("plain text\n[by:someone]\n[00:01.00]a");
     expect(simplify(result.lines)).toEqual([
       { text: "a", startMs: 1000, endMs: null },
     ]);
     expect(result.metadata).toEqual({});
+  });
+});
+
+describe("linesOmittedFromLrc", () => {
+  it("lists untimed lines and timed lines without text", () => {
+    const untimed = createLine("untimed");
+    const empty = createLine("", 2000);
+
+    expect(
+      linesOmittedFromLrc([createLine("kept", 1000), untimed, empty]),
+    ).toEqual([untimed, empty]);
   });
 });
 
@@ -104,6 +123,13 @@ describe("serializeLrc", () => {
     project.lines = [line, createLine("b", 3000)];
 
     expect(serializeLrc(project)).toBe("[00:01.00]a\n[00:03.00]b\n");
+  });
+
+  it("skips timed lines without text, which would read back as end times", () => {
+    const project = createProject();
+    project.lines = [createLine("a", 1000), createLine(" ", 2000)];
+
+    expect(serializeLrc(project)).toBe("[00:01.00]a\n");
   });
 
   it("round-trips through parseLrc", () => {

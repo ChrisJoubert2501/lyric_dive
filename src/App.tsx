@@ -5,6 +5,7 @@ import { PlayerControls } from "./audio/PlayerControls";
 import { usePlayback } from "./audio/usePlayback";
 import { LyricsEditor } from "./lyrics/LyricsEditor";
 import { SongDetails } from "./lyrics/SongDetails";
+import { linesOmittedFromLrc, parseLrc, serializeLrc } from "./lyrics/lrc";
 import { createProject, type LyricProject } from "./lyrics/model";
 import { projectReducer } from "./lyrics/project";
 import {
@@ -12,10 +13,12 @@ import {
   serializeProject,
   suggestedFileName,
 } from "./lyrics/projectFile";
+import { fileName, withExtension } from "./paths";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import "./App.css";
 
 const PROJECT_FILTERS = [{ name: "Lyric Dive project", extensions: ["json"] }];
+const LRC_FILTERS = [{ name: "LRC lyrics", extensions: ["lrc"] }];
 
 interface ProjectFile {
   path: string | null;
@@ -36,12 +39,14 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const { status, load, unload, play, pause, seek, refresh } = usePlayback();
 
   const dirty = project !== file.saved;
 
   async function run(action: () => Promise<void>) {
     setError(null);
+    setNotice(null);
     try {
       await action();
     } catch (error) {
@@ -120,15 +125,70 @@ function App() {
       saveAs || !file.path
         ? await save({
             filters: PROJECT_FILTERS,
-            defaultPath: file.path ?? suggestedFileName(project.metadata),
+            defaultPath:
+              file.path ??
+              suggestedFileName(project.metadata, ".lyricdive.json"),
           })
         : file.path;
     if (!path) return;
-    await invoke("write_project", {
+    await invoke("write_text_file", {
       path,
       contents: serializeProject(project),
     });
     setFile({ path, saved: project });
+  }
+
+  async function importLrc() {
+    const path = await open({
+      multiple: false,
+      directory: false,
+      filters: LRC_FILTERS,
+    });
+    if (!path) return;
+    const { metadata, lines } = parseLrc(
+      await invoke<string>("read_text_file", { path }),
+    );
+    if (lines.length === 0) {
+      throw new Error("This file contains no timed lyrics.");
+    }
+    if (
+      project.lines.length > 0 &&
+      !(await confirm("The current lyrics and their timestamps will be lost.", {
+        title: "Replace the lyrics?",
+        kind: "warning",
+        okLabel: "Replace",
+      }))
+    ) {
+      return;
+    }
+    dispatch({ type: "lyricsImported", lines, metadata });
+    setEditorKey((key) => key + 1);
+  }
+
+  async function exportLrc() {
+    const omitted = linesOmittedFromLrc(project.lines).length;
+    if (omitted === project.lines.length) {
+      throw new Error("No line has both a timestamp and text yet.");
+    }
+    if (
+      omitted > 0 &&
+      !(await confirm(
+        `${omitted} ${omitted === 1 ? "line has" : "lines have"} no timestamp or no text and will be left out.`,
+        { title: "Export anyway?", kind: "warning", okLabel: "Export" },
+      ))
+    ) {
+      return;
+    }
+    const path = await save({
+      filters: LRC_FILTERS,
+      // Players look for lyrics in a file named like the audio file, next to it.
+      defaultPath: project.audioPath
+        ? withExtension(project.audioPath, ".lrc")
+        : suggestedFileName(project.metadata, ".lrc"),
+    });
+    if (!path) return;
+    await invoke("write_text_file", { path, contents: serializeLrc(project) });
+    setNotice(`Exported ${fileName(path)}.`);
   }
 
   useKeyboardShortcuts({
@@ -155,6 +215,12 @@ function App() {
           </button>
           <button type="button" onClick={() => run(() => saveProject(true))}>
             Save as…
+          </button>
+          <button type="button" onClick={() => run(importLrc)}>
+            Import LRC…
+          </button>
+          <button type="button" onClick={() => run(exportLrc)}>
+            Export LRC…
           </button>
         </div>
         <span className="project-name">
@@ -190,6 +256,7 @@ function App() {
         />
       )}
       {error && <p className="error">{error}</p>}
+      {notice && <p className="notice">{notice}</p>}
 
       <SongDetails
         metadata={project.metadata}
@@ -208,10 +275,6 @@ function App() {
       />
     </main>
   );
-}
-
-function fileName(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path;
 }
 
 export default App;

@@ -51,6 +51,21 @@ describe("projectReducer", () => {
     expect(apply([], { type: "linesReplaced", lines })).toBe(lines);
   });
 
+  it("imports lines and overwrites only the metadata the import provides", () => {
+    const lines = [createLine("imported", 1000)];
+    const project = projectReducer(
+      createProject({ title: "Old", album: "Kept" }),
+      { type: "lyricsImported", lines, metadata: { title: "New" } },
+    );
+
+    expect(project.lines).toBe(lines);
+    expect(project.metadata).toEqual({
+      title: "New",
+      artist: "",
+      album: "Kept",
+    });
+  });
+
   it("stamps only the given line, without mutating the original", () => {
     const first = createLine("first");
     const second = createLine("second", 2000);

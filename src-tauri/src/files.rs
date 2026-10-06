@@ -6,7 +6,7 @@ use tauri::{AppHandle, Runtime};
 use tauri_plugin_fs::FsExt;
 
 #[derive(Debug, thiserror::Error)]
-pub enum ProjectError {
+pub enum FileError {
     #[error("this file was not chosen through the file dialog")]
     PathNotAllowed,
     #[error("{0}")]
@@ -15,7 +15,7 @@ pub enum ProjectError {
     Scope(#[from] tauri::Error),
 }
 
-impl serde::Serialize for ProjectError {
+impl serde::Serialize for FileError {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.to_string())
     }
@@ -29,27 +29,32 @@ impl serde::Serialize for ProjectError {
 /// the user chose can grant this, so the frontend still cannot reach
 /// arbitrary files on its own.
 #[tauri::command]
-pub fn read_project<R: Runtime>(app: AppHandle<R>, path: PathBuf) -> Result<String, ProjectError> {
-    let scope = app.fs_scope();
-    if !scope.is_allowed(&path) {
-        return Err(ProjectError::PathNotAllowed);
-    }
-    let contents = fs::read_to_string(&path)?;
+pub fn read_project<R: Runtime>(app: AppHandle<R>, path: PathBuf) -> Result<String, FileError> {
+    let contents = read_text_file(app.clone(), path)?;
     if let Some(audio_path) = audio_path(&contents) {
         // The scope compares existing files by their canonical path.
-        scope.allow_file(fs::canonicalize(&audio_path).unwrap_or(audio_path))?;
+        app.fs_scope()
+            .allow_file(fs::canonicalize(&audio_path).unwrap_or(audio_path))?;
     }
     Ok(contents)
 }
 
 #[tauri::command]
-pub fn write_project<R: Runtime>(
+pub fn read_text_file<R: Runtime>(app: AppHandle<R>, path: PathBuf) -> Result<String, FileError> {
+    if !app.fs_scope().is_allowed(&path) {
+        return Err(FileError::PathNotAllowed);
+    }
+    Ok(fs::read_to_string(&path)?)
+}
+
+#[tauri::command]
+pub fn write_text_file<R: Runtime>(
     app: AppHandle<R>,
     path: PathBuf,
     contents: String,
-) -> Result<(), ProjectError> {
+) -> Result<(), FileError> {
     if !app.fs_scope().is_allowed(&path) {
-        return Err(ProjectError::PathNotAllowed);
+        return Err(FileError::PathNotAllowed);
     }
     write_atomically(&path, contents.as_bytes())?;
     Ok(())
