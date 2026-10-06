@@ -22,6 +22,7 @@ body {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
 }
@@ -31,8 +32,38 @@ body {
   font-size: 1.5rem;
 }
 
-.player {
+.project-name {
+  font-weight: 600;
+}
+
+.audio-file {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.song-details {
   margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.song-details label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.song-details input {
+  font: inherit;
+}
+
+.player {
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

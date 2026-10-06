@@ -33,7 +33,9 @@ export function LyricsEditor({
   refresh,
   run,
 }: LyricsEditorProps) {
-  const [selectedId, setSelectedId] = useState<LineId | null>(null);
+  const [selectedId, setSelectedId] = useState<LineId | null>(
+    () => lines[0]?.id ?? null,
+  );
   const [editing, setEditing] = useState<LineEdit | null>(null);
   const [replacing, setReplacing] = useState(false);
 

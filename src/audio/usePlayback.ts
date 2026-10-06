@@ -38,6 +38,10 @@ export function usePlayback() {
   const load = useCallback(async (path: string) => {
     setStatus(await invoke<PlaybackStatus>("load_audio", { path }));
   }, []);
+  const unload = useCallback(async () => {
+    await invoke("unload_audio");
+    setStatus(null);
+  }, []);
   const play = useCallback(async () => {
     setStatus(await invoke<PlaybackStatus>("play"));
   }, []);
@@ -53,5 +57,5 @@ export function usePlayback() {
     return next;
   }, []);
 
-  return { status, load, play, pause, seek, refresh };
+  return { status, load, unload, play, pause, seek, refresh };
 }

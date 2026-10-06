@@ -6,21 +6,23 @@ export interface Shortcut {
   repeat?: boolean;
 }
 
-/** Keyed by `KeyboardEvent.key`, e.g. `" "` or `"Enter"`. */
+/** Keyed by `shortcutName`, e.g. `" "`, `"Enter"` or `"Ctrl+s"`. */
 export type Shortcuts = Partial<Record<string, Shortcut>>;
+
+type KeyState = Pick<
+  KeyboardEvent,
+  "key" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey"
+>;
 
 export function useKeyboardShortcuts(shortcuts: Shortcuts) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    const shortcut = shortcuts[event.key];
-    if (
-      !shortcut ||
-      event.ctrlKey ||
-      event.altKey ||
-      event.metaKey ||
-      isTextEntry(event.target)
-    ) {
-      return;
-    }
+    const shortcut = shortcuts[shortcutName(event)];
+    if (!shortcut) return;
+    // Plain keys type into text fields, so only shortcuts with a modifier
+    // (e.g. Ctrl+S) work there.
+    const modified = event.ctrlKey || event.metaKey || event.altKey;
+    if (!modified && isTextEntry(event.target)) return;
+
     // Stops a focused button from also being clicked, e.g. Enter pausing
     // playback because the Play button still has focus.
     event.preventDefault();
@@ -31,6 +33,19 @@ export function useKeyboardShortcuts(shortcuts: Shortcuts) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+}
+
+/**
+ * Cmd on macOS counts as Ctrl. Shift only counts together with Ctrl or Alt:
+ * on its own it just changes the character a key types.
+ */
+export function shortcutName(event: KeyState): string {
+  const parts: string[] = [];
+  if (event.ctrlKey || event.metaKey) parts.push("Ctrl");
+  if (event.altKey) parts.push("Alt");
+  if (event.shiftKey && parts.length > 0) parts.push("Shift");
+  parts.push(event.key.length === 1 ? event.key.toLowerCase() : event.key);
+  return parts.join("+");
 }
 
 function isTextEntry(target: EventTarget | null): boolean {

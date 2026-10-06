@@ -1,7 +1,9 @@
-import type { LineId, LyricLine, LyricProject } from "./model";
+import type { LineId, LyricLine, LyricProject, SongMetadata } from "./model";
 
 export type ProjectAction =
+  | { type: "projectReplaced"; project: LyricProject }
   | { type: "audioLinked"; path: string }
+  | { type: "metadataChanged"; field: keyof SongMetadata; value: string }
   | { type: "linesReplaced"; lines: LyricLine[] }
   | { type: "lineInserted"; line: LyricLine; index: number }
   | { type: "lineDeleted"; id: LineId }
@@ -16,8 +18,15 @@ export function projectReducer(
   action: ProjectAction,
 ): LyricProject {
   switch (action.type) {
+    case "projectReplaced":
+      return action.project;
     case "audioLinked":
       return { ...project, audioPath: action.path };
+    case "metadataChanged":
+      return {
+        ...project,
+        metadata: { ...project.metadata, [action.field]: action.value },
+      };
     case "linesReplaced":
       return { ...project, lines: action.lines };
     case "lineInserted":

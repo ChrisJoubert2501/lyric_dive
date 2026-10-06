@@ -1,5 +1,6 @@
 mod audio;
 mod playback;
+mod project;
 
 use std::sync::Mutex;
 
@@ -11,10 +12,13 @@ pub fn run() {
         .manage(Mutex::new(audio::Player::default()))
         .invoke_handler(tauri::generate_handler![
             playback::load_audio,
+            playback::unload_audio,
             playback::play,
             playback::pause,
             playback::seek,
             playback::playback_status,
+            project::read_project,
+            project::write_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

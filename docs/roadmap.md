@@ -29,8 +29,8 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Highlight and scroll to the active line during playback
 - [x] Nudge a timestamp by small steps (e.g. ±50 ms), type it in directly, and clear it
 - [x] Edit, insert, delete and reorder lines, and replace all lyrics
-- [ ] Edit title, artist and album manually
-- [ ] Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md)), including relinking a missing MP3
+- [x] Edit title, artist and album manually
+- [x] Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md), [ADR 0007](decisions/0007-project-file-access-through-rust.md)), including relinking a missing MP3
 - [ ] Import and export LRC
 
 **Done when:** a real song can be loaded, synced line by line, saved, reopened, and exported as an LRC file that plays correctly in another player.

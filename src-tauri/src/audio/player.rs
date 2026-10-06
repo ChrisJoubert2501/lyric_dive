@@ -90,6 +90,10 @@ impl Player {
         Ok(())
     }
 
+    pub fn unload(&mut self) {
+        self.track = None;
+    }
+
     pub fn play(&self) {
         let Some(track) = &self.track else { return };
         if track.shared.next_frame.load(Ordering::Relaxed) >= track.audio.frames() {

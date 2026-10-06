@@ -12,7 +12,7 @@ pub enum AudioError {
     Decode(#[from] symphonia::core::errors::Error),
     #[error("the file contains no playable audio")]
     NoAudio,
-    #[error("this file was not chosen through the file dialog")]
+    #[error("this file was not chosen through the file dialog or an opened project")]
     PathNotAllowed,
     #[error("no audio output device was found")]
     NoOutputDevice,

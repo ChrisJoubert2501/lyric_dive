@@ -29,6 +29,11 @@ pub async fn load_audio<R: Runtime>(
 }
 
 #[tauri::command]
+pub fn unload_audio(player: PlayerState<'_>) {
+    player.lock().unwrap().unload();
+}
+
+#[tauri::command]
 pub fn play(player: PlayerState<'_>) -> PlaybackStatus {
     let player = player.lock().unwrap();
     player.play();

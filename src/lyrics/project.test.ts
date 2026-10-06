@@ -11,6 +11,31 @@ function texts(lines: LyricLine[]): string[] {
 }
 
 describe("projectReducer", () => {
+  it("replaces the whole project", () => {
+    const next = createProject({ title: "Other" });
+
+    expect(
+      projectReducer(createProject(), {
+        type: "projectReplaced",
+        project: next,
+      }),
+    ).toBe(next);
+  });
+
+  it("changes one metadata field", () => {
+    const project = projectReducer(createProject({ artist: "Band" }), {
+      type: "metadataChanged",
+      field: "title",
+      value: "Song",
+    });
+
+    expect(project.metadata).toEqual({
+      title: "Song",
+      artist: "Band",
+      album: "",
+    });
+  });
+
   it("links the audio file", () => {
     const project = projectReducer(createProject(), {
       type: "audioLinked",
