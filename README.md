@@ -51,4 +51,4 @@ The frontend tests, type check and lint only need Node, so they work without the
 - **Audio is decoded and played in Rust, not in the webview**, because WebKitGTK's media playback skipped and drifted out of sync. The reported position is the sample coming out of the speakers, so it cannot drift from what the user hears.
 - **The frontend has no file system permissions.** Project files are read and written by Rust commands, and audio is only played from files the user chose or that an opened project refers to.
 
-The reasoning behind these, and the plan ahead, are in [`docs/`](docs/): see the [roadmap](docs/roadmap.md) and the [decision records](docs/decisions/README.md).
+The reasoning behind these, and the plan ahead, are in [`docs/`](docs/): see the [roadmap](docs/roadmap.md), the [decision records](docs/decisions/README.md), and [notes](docs/notes/) on investigations whose options were not (yet) adopted.

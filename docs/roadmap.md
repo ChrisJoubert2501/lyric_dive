@@ -77,6 +77,7 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - Automatic transcription for draft lyrics
 - Song library view (may justify revisiting ADR 0002)
 - Audio formats beyond MP3
+- Use cpal's native PulseAudio host on Linux for lower pause/seek latency and no startup errors ([investigation](notes/audio-output-errors-on-pulseaudio.md))
 
 ## Open questions
 
