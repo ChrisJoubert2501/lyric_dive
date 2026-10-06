@@ -4,6 +4,12 @@ export interface Shortcut {
   run: () => void;
   /** Whether holding the key down runs the shortcut repeatedly. */
   repeat?: boolean;
+  /**
+   * Whether the shortcut also works while typing in a text field. Off by
+   * default, so that the field keeps its own behaviour for the key, e.g.
+   * Space typing a space or Ctrl+Z undoing the typing.
+   */
+  inTextFields?: boolean;
 }
 
 /** Keyed by `shortcutName`, e.g. `" "`, `"Enter"` or `"Ctrl+s"`. */
@@ -18,10 +24,7 @@ export function useKeyboardShortcuts(shortcuts: Shortcuts) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const shortcut = shortcuts[shortcutName(event)];
     if (!shortcut) return;
-    // Plain keys type into text fields, so only shortcuts with a modifier
-    // (e.g. Ctrl+S) work there.
-    const modified = event.ctrlKey || event.metaKey || event.altKey;
-    if (!modified && isTextEntry(event.target)) return;
+    if (!shortcut.inTextFields && isTextEntry(event.target)) return;
 
     // Stops a focused button from also being clicked, e.g. Enter pausing
     // playback because the Play button still has focus.

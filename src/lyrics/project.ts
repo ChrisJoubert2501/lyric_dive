@@ -1,3 +1,4 @@
+import { undoable } from "../history";
 import type { LineId, LyricLine, LyricProject, SongMetadata } from "./model";
 
 export type ProjectAction =
@@ -18,6 +19,10 @@ export type ProjectAction =
   | { type: "lineNudged"; id: LineId; deltaMs: number }
   | { type: "lineTimeCleared"; id: LineId };
 
+/**
+ * Returns the same project object when an action changes nothing, so that
+ * the undo history does not record steps that undo nothing.
+ */
 export function projectReducer(
   project: LyricProject,
   action: ProjectAction,
@@ -26,12 +31,16 @@ export function projectReducer(
     case "projectReplaced":
       return action.project;
     case "audioLinked":
-      return { ...project, audioPath: action.path };
+      return project.audioPath === action.path
+        ? project
+        : { ...project, audioPath: action.path };
     case "metadataChanged":
-      return {
-        ...project,
-        metadata: { ...project.metadata, [action.field]: action.value },
-      };
+      return project.metadata[action.field] === action.value
+        ? project
+        : {
+            ...project,
+            metadata: { ...project.metadata, [action.field]: action.value },
+          };
     case "linesReplaced":
       return { ...project, lines: action.lines };
     case "lyricsImported":
@@ -49,33 +58,31 @@ export function projectReducer(
           ...project.lines.slice(action.index),
         ],
       };
-    case "lineDeleted":
-      return {
-        ...project,
-        lines: project.lines.filter((line) => line.id !== action.id),
-      };
-    case "lineMoved":
-      return { ...project, lines: moveLine(project.lines, action) };
+    case "lineDeleted": {
+      const lines = project.lines.filter((line) => line.id !== action.id);
+      return lines.length === project.lines.length
+        ? project
+        : { ...project, lines };
+    }
+    case "lineMoved": {
+      const lines = moveLine(project.lines, action);
+      return lines === project.lines ? project : { ...project, lines };
+    }
     case "lineTextChanged":
-      return updateLine(project, action.id, (line) => ({
-        ...line,
-        text: action.text,
-      }));
+      return updateLine(project, action.id, () => ({ text: action.text }));
     case "lineTimeSet":
-      return updateLine(project, action.id, (line) => ({
-        ...line,
+      return updateLine(project, action.id, () => ({
         startMs: action.startMs,
       }));
     case "lineNudged":
       return updateLine(project, action.id, (line) =>
         line.startMs === null
-          ? line
-          : { ...line, startMs: Math.max(0, line.startMs + action.deltaMs) },
+          ? {}
+          : { startMs: Math.max(0, line.startMs + action.deltaMs) },
       );
     case "lineTimeCleared":
       // An end time on its own would be meaningless, so it goes too.
-      return updateLine(project, action.id, (line) => ({
-        ...line,
+      return updateLine(project, action.id, () => ({
         startMs: null,
         endMs: null,
       }));
@@ -85,12 +92,18 @@ export function projectReducer(
 function updateLine(
   project: LyricProject,
   id: LineId,
-  update: (line: LyricLine) => LyricLine,
+  changes: (line: LyricLine) => Partial<LyricLine>,
 ): LyricProject {
-  return {
-    ...project,
-    lines: project.lines.map((line) => (line.id === id ? update(line) : line)),
-  };
+  let changed = false;
+  const lines = project.lines.map((line) => {
+    if (line.id !== id) return line;
+    const patch = changes(line);
+    const keys = Object.keys(patch) as (keyof LyricLine)[];
+    if (keys.every((key) => line[key] === patch[key])) return line;
+    changed = true;
+    return { ...line, ...patch };
+  });
+  return changed ? { ...project, lines } : project;
 }
 
 function moveLine(
@@ -105,6 +118,23 @@ function moveLine(
   [moved[from], moved[to]] = [moved[to], moved[from]];
   return moved;
 }
+
+export const projectHistoryReducer = undoable(projectReducer, {
+  resets: (action) => action.type === "projectReplaced",
+  // The player has the newly linked file loaded, so undo must not bring back
+  // a path that no longer matches it.
+  appliesToAll: (action) => action.type === "audioLinked",
+  mergeKey: (action) => {
+    switch (action.type) {
+      case "metadataChanged":
+        return `metadata:${action.field}`;
+      case "lineNudged":
+        return `nudge:${action.id}`;
+      default:
+        return null;
+    }
+  },
+});
 
 export function lineAfter(lines: LyricLine[], id: LineId): LineId | null {
   const index = lines.findIndex((line) => line.id === id);

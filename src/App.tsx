@@ -7,12 +7,13 @@ import { LyricsEditor } from "./lyrics/LyricsEditor";
 import { SongDetails } from "./lyrics/SongDetails";
 import { linesOmittedFromLrc, parseLrc, serializeLrc } from "./lyrics/lrc";
 import { createProject, type LyricProject } from "./lyrics/model";
-import { projectReducer } from "./lyrics/project";
+import { projectHistoryReducer } from "./lyrics/project";
 import {
   parseProject,
   serializeProject,
   suggestedFileName,
 } from "./lyrics/projectFile";
+import { canRedo, canUndo, createHistory } from "./history";
 import { fileName, withExtension } from "./paths";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import "./App.css";
@@ -28,7 +29,12 @@ interface ProjectFile {
 
 function App() {
   const [initialProject] = useState(createProject);
-  const [project, dispatch] = useReducer(projectReducer, initialProject);
+  const [history, dispatch] = useReducer(
+    projectHistoryReducer,
+    initialProject,
+    createHistory,
+  );
+  const project = history.present;
   const [file, setFile] = useState<ProjectFile>({
     path: null,
     saved: initialProject,
@@ -191,12 +197,21 @@ function App() {
     setNotice(`Exported ${fileName(path)}.`);
   }
 
+  const undo = () => dispatch({ type: "undo" });
+  const redo = () => dispatch({ type: "redo" });
+
   useKeyboardShortcuts({
     " ": { run: togglePlayback },
-    "Ctrl+n": { run: () => run(newProject) },
-    "Ctrl+o": { run: () => run(openProject) },
-    "Ctrl+s": { run: () => run(() => saveProject(false)) },
-    "Ctrl+Shift+s": { run: () => run(() => saveProject(true)) },
+    "Ctrl+z": { run: undo, repeat: true },
+    "Ctrl+Shift+z": { run: redo, repeat: true },
+    "Ctrl+y": { run: redo, repeat: true },
+    "Ctrl+n": { run: () => run(newProject), inTextFields: true },
+    "Ctrl+o": { run: () => run(openProject), inTextFields: true },
+    "Ctrl+s": { run: () => run(() => saveProject(false)), inTextFields: true },
+    "Ctrl+Shift+s": {
+      run: () => run(() => saveProject(true)),
+      inTextFields: true,
+    },
   });
 
   return (
@@ -221,6 +236,24 @@ function App() {
           </button>
           <button type="button" onClick={() => run(exportLrc)}>
             Export LRC…
+          </button>
+        </div>
+        <div className="actions">
+          <button
+            type="button"
+            onClick={undo}
+            disabled={!canUndo(history)}
+            title="Ctrl+Z"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={!canRedo(history)}
+            title="Ctrl+Shift+Z or Ctrl+Y"
+          >
+            Redo
           </button>
         </div>
         <span className="project-name">

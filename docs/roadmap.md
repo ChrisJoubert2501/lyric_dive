@@ -39,12 +39,15 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 
 **Goal:** make the sync workflow fast and safe enough to use regularly.
 
-- Undo/redo
-- Autosave
-- A documented keyboard shortcut scheme
-- Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
-- Waveform view for fine-tuning timestamps
-- Playback speed control for fast passages
+- [x] Undo/redo
+- [ ] Autosave
+- [ ] Warn about unsaved changes when the window is closed
+- [ ] Keep the timestamps of unchanged lines when replacing the lyrics
+- [ ] Warn about lines that start with `[` (e.g. `[Chorus]`), which LRC reads as tags
+- [ ] A documented keyboard shortcut scheme
+- [ ] Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
+- [ ] Waveform view for fine-tuning timestamps
+- [ ] Playback speed control for fast passages
 
 **Done when:** syncing a song requires no mouse for the common path, and no work is lost on a crash or accidental edit.
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createLine, createProject, type LyricLine } from "./model";
-import { lineAfter, projectReducer, type ProjectAction } from "./project";
+import {
+  lineAfter,
+  projectHistoryReducer,
+  projectReducer,
+  type ProjectAction,
+} from "./project";
+import { createHistory } from "../history";
 
 function apply(lines: LyricLine[], action: ProjectAction): LyricLine[] {
   return projectReducer({ ...createProject(), lines }, action).lines;
@@ -149,6 +155,91 @@ describe("projectReducer", () => {
 
     expect(cleared.startMs).toBeNull();
     expect(cleared.endMs).toBeNull();
+  });
+});
+
+describe("projectReducer without changes", () => {
+  const timed = createLine("timed", 1000);
+  const untimed = createLine("untimed");
+  const lines = [timed, untimed];
+  const project = { ...createProject({ title: "Song" }), lines };
+
+  it.each<[string, ProjectAction]>([
+    [
+      "unchanged text",
+      { type: "lineTextChanged", id: timed.id, text: "timed" },
+    ],
+    ["the same time", { type: "lineTimeSet", id: timed.id, startMs: 1000 }],
+    [
+      "nudging an untimed line",
+      { type: "lineNudged", id: untimed.id, deltaMs: 50 },
+    ],
+    ["clearing an untimed line", { type: "lineTimeCleared", id: untimed.id }],
+    [
+      "moving the first line up",
+      { type: "lineMoved", id: timed.id, offset: -1 },
+    ],
+    ["deleting a missing line", { type: "lineDeleted", id: "missing" }],
+    [
+      "the same title",
+      { type: "metadataChanged", field: "title", value: "Song" },
+    ],
+  ])("returns the same project for %s", (_, action) => {
+    expect(projectReducer(project, action)).toBe(project);
+  });
+});
+
+describe("projectHistoryReducer", () => {
+  const line = createLine("line", 1000);
+  const start = createHistory({ ...createProject(), lines: [line] });
+
+  function run(actions: Parameters<typeof projectHistoryReducer>[1][]) {
+    return actions.reduce(projectHistoryReducer, start);
+  }
+
+  it("undoes a whole run of nudges to one line in one step", () => {
+    const nudge: ProjectAction = {
+      type: "lineNudged",
+      id: line.id,
+      deltaMs: 50,
+    };
+
+    const history = run([nudge, nudge, nudge]);
+    expect(history.present.lines[0].startMs).toBe(1150);
+    expect(run([nudge, nudge, nudge, { type: "undo" }]).present).toBe(
+      start.present,
+    );
+  });
+
+  it("undoes typing in one metadata field in one step", () => {
+    const typed = ["S", "So", "Son", "Song"].map((value): ProjectAction => ({
+      type: "metadataChanged",
+      field: "title",
+      value,
+    }));
+
+    expect(run([...typed, { type: "undo" }]).present.metadata.title).toBe("");
+  });
+
+  it("keeps a relinked audio file through undo and redo", () => {
+    const history = run([
+      { type: "lineTimeCleared", id: line.id },
+      { type: "audioLinked", path: "/music/moved.mp3" },
+      { type: "undo" },
+    ]);
+
+    expect(history.present.lines[0].startMs).toBe(1000);
+    expect(history.present.audioPath).toBe("/music/moved.mp3");
+    expect(history.future[0].audioPath).toBe("/music/moved.mp3");
+  });
+
+  it("starts a new history when another project is opened", () => {
+    const history = run([
+      { type: "lineTimeCleared", id: line.id },
+      { type: "projectReplaced", project: createProject() },
+    ]);
+
+    expect(history.past).toEqual([]);
   });
 });
 
