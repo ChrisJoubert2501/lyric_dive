@@ -1,0 +1,60 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color-scheme: light dark;
+  color: #1a1a1a;
+  background-color: #f6f6f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #f0f0f0;
+    background-color: #1e1e1e;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  padding: 1.5rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toolbar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.player {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 40rem;
+}
+
+.player audio {
+  width: 100%;
+}
+
+.file-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.position {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 2rem;
+}
+
+.error {
+  margin: 0;
+  color: #d33;
+}
