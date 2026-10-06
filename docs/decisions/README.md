@@ -4,12 +4,14 @@ Each file records one significant decision: the context, what was decided, which
 
 Write a new record when a decision is hard to reverse, affects several parts of the code, or was a close call between alternatives. Records are not edited after the fact; if a decision changes, write a new record and mark the old one as superseded.
 
-| ADR                                   | Decision                                                | Status   |
-| ------------------------------------- | ------------------------------------------------------- | -------- |
-| [0001](0001-tauri-over-electron.md)   | Tauri 2 + React + TypeScript instead of Electron        | Accepted |
-| [0002](0002-json-project-files.md)    | One JSON file per project instead of SQLite             | Accepted |
-| [0003](0003-lyrics-data-model.md)     | Lines with stable IDs, millisecond timing, translations | Accepted |
-| [0004](0004-lrc-gaps-as-end-times.md) | Empty timed LRC lines map to the previous line's end    | Accepted |
+| ADR                                   | Decision                                                | Status             |
+| ------------------------------------- | ------------------------------------------------------- | ------------------ |
+| [0001](0001-tauri-over-electron.md)   | Tauri 2 + React + TypeScript instead of Electron        | Accepted           |
+| [0002](0002-json-project-files.md)    | One JSON file per project instead of SQLite             | Accepted           |
+| [0003](0003-lyrics-data-model.md)     | Lines with stable IDs, millisecond timing, translations | Accepted           |
+| [0004](0004-lrc-gaps-as-end-times.md) | Empty timed LRC lines map to the previous line's end    | Accepted           |
+| [0005](0005-audio-as-blob-urls.md)    | Load audio into memory as Blob URLs, not `asset://`     | Superseded by 0006 |
+| [0006](0006-native-rust-playback.md)  | Play audio natively in Rust instead of in the webview   | Accepted           |
 
 ## Template
 

@@ -2,7 +2,7 @@
 
 Each phase has a goal and a "done when" condition. A phase is finished when its condition is met, not when every listed feature exists; features that turn out to be unnecessary get dropped, and new ones get added as we learn.
 
-**Current phase: 0 — Foundation**
+**Current phase: 1 — Core sync loop (MVP)**
 
 ## Phase 0 — Foundation
 
@@ -12,8 +12,10 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Lyrics data model ([ADR 0003](decisions/0003-lyrics-data-model.md))
 - [x] LRC import/export ([ADR 0004](decisions/0004-lrc-gaps-as-end-times.md))
 - [x] Open an MP3 through the native file dialog and play it
-- [ ] Upgrade the development machine to Ubuntu 22.04+ ([ADR 0001](decisions/0001-tauri-over-electron.md))
-- [ ] Run the app and verify playback, seeking and the position readout
+- [x] Upgrade the development machine to Ubuntu 22.04+ ([ADR 0001](decisions/0001-tauri-over-electron.md))
+- [x] Load audio as Blob URLs, because WebKitGTK cannot play `asset://` URLs ([ADR 0005](decisions/0005-audio-as-blob-urls.md))
+- [x] Play audio natively in Rust, because WebKitGTK playback skips and drifts ([ADR 0006](decisions/0006-native-rust-playback.md))
+- [x] Run the app and verify playback, seeking and the position readout
 
 **Done when:** `npm run tauri dev` opens an MP3 that plays, seeks accurately, and shows a smoothly updating position. If this fails, revisit ADR 0001 before starting Phase 1.
 

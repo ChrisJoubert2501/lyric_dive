@@ -1,6 +1,6 @@
 # 0001. Tauri 2 + React + TypeScript instead of Electron
 
-- **Status:** Accepted (provisional until the Phase 0 audio check passes)
+- **Status:** Accepted; audio playback superseded by [0006](0006-native-rust-playback.md)
 - **Date:** 2026-10-05
 
 ## Context
