@@ -1,7 +1,13 @@
 import { useEffect, useEffectEvent } from "react";
 
+export interface Shortcut {
+  run: () => void;
+  /** Whether holding the key down runs the shortcut repeatedly. */
+  repeat?: boolean;
+}
+
 /** Keyed by `KeyboardEvent.key`, e.g. `" "` or `"Enter"`. */
-export type Shortcuts = Partial<Record<string, () => void>>;
+export type Shortcuts = Partial<Record<string, Shortcut>>;
 
 export function useKeyboardShortcuts(shortcuts: Shortcuts) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -18,7 +24,7 @@ export function useKeyboardShortcuts(shortcuts: Shortcuts) {
     // Stops a focused button from also being clicked, e.g. Enter pausing
     // playback because the Play button still has focus.
     event.preventDefault();
-    if (!event.repeat) shortcut();
+    if (!event.repeat || shortcut.repeat) shortcut.run();
   });
 
   useEffect(() => {

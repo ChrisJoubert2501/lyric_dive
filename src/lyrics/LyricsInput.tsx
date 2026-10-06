@@ -1,11 +1,17 @@
 import { useState } from "react";
 
 interface LyricsInputProps {
+  initialText?: string;
   onSubmit: (text: string) => void;
+  onCancel?: () => void;
 }
 
-export function LyricsInput({ onSubmit }: LyricsInputProps) {
-  const [text, setText] = useState("");
+export function LyricsInput({
+  initialText = "",
+  onSubmit,
+  onCancel,
+}: LyricsInputProps) {
+  const [text, setText] = useState(initialText);
 
   return (
     <form
@@ -22,9 +28,16 @@ export function LyricsInput({ onSubmit }: LyricsInputProps) {
         value={text}
         onChange={(event) => setText(event.target.value)}
       />
-      <button type="submit" disabled={text.trim().length === 0}>
-        Use these lyrics
-      </button>
+      <div className="actions">
+        <button type="submit" disabled={text.trim().length === 0}>
+          Use these lyrics
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

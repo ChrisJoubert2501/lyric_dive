@@ -3,7 +3,13 @@ import type { LineId, LyricLine, LyricProject } from "./model";
 export type ProjectAction =
   | { type: "audioLinked"; path: string }
   | { type: "linesReplaced"; lines: LyricLine[] }
-  | { type: "lineStamped"; id: LineId; startMs: number };
+  | { type: "lineInserted"; line: LyricLine; index: number }
+  | { type: "lineDeleted"; id: LineId }
+  | { type: "lineMoved"; id: LineId; offset: -1 | 1 }
+  | { type: "lineTextChanged"; id: LineId; text: string }
+  | { type: "lineTimeSet"; id: LineId; startMs: number }
+  | { type: "lineNudged"; id: LineId; deltaMs: number }
+  | { type: "lineTimeCleared"; id: LineId };
 
 export function projectReducer(
   project: LyricProject,
@@ -14,14 +20,70 @@ export function projectReducer(
       return { ...project, audioPath: action.path };
     case "linesReplaced":
       return { ...project, lines: action.lines };
-    case "lineStamped":
+    case "lineInserted":
       return {
         ...project,
-        lines: project.lines.map((line) =>
-          line.id === action.id ? { ...line, startMs: action.startMs } : line,
-        ),
+        lines: [
+          ...project.lines.slice(0, action.index),
+          action.line,
+          ...project.lines.slice(action.index),
+        ],
       };
+    case "lineDeleted":
+      return {
+        ...project,
+        lines: project.lines.filter((line) => line.id !== action.id),
+      };
+    case "lineMoved":
+      return { ...project, lines: moveLine(project.lines, action) };
+    case "lineTextChanged":
+      return updateLine(project, action.id, (line) => ({
+        ...line,
+        text: action.text,
+      }));
+    case "lineTimeSet":
+      return updateLine(project, action.id, (line) => ({
+        ...line,
+        startMs: action.startMs,
+      }));
+    case "lineNudged":
+      return updateLine(project, action.id, (line) =>
+        line.startMs === null
+          ? line
+          : { ...line, startMs: Math.max(0, line.startMs + action.deltaMs) },
+      );
+    case "lineTimeCleared":
+      // An end time on its own would be meaningless, so it goes too.
+      return updateLine(project, action.id, (line) => ({
+        ...line,
+        startMs: null,
+        endMs: null,
+      }));
   }
+}
+
+function updateLine(
+  project: LyricProject,
+  id: LineId,
+  update: (line: LyricLine) => LyricLine,
+): LyricProject {
+  return {
+    ...project,
+    lines: project.lines.map((line) => (line.id === id ? update(line) : line)),
+  };
+}
+
+function moveLine(
+  lines: LyricLine[],
+  { id, offset }: { id: LineId; offset: -1 | 1 },
+): LyricLine[] {
+  const from = lines.findIndex((line) => line.id === id);
+  const to = from + offset;
+  if (from === -1 || to < 0 || to >= lines.length) return lines;
+
+  const moved = [...lines];
+  [moved[from], moved[to]] = [moved[to], moved[from]];
+  return moved;
 }
 
 export function lineAfter(lines: LyricLine[], id: LineId): LineId | null {

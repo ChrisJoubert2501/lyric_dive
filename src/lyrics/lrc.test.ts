@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatLrcTimestamp, parseLrc, serializeLrc } from "./lrc";
+import {
+  formatLrcTimestamp,
+  parseLrc,
+  parseLrcTimestamp,
+  serializeLrc,
+} from "./lrc";
 import { createLine, createProject } from "./model";
 
 const simplify = (lines: ReturnType<typeof parseLrc>["lines"]) =>
@@ -120,4 +125,23 @@ describe("formatLrcTimestamp", () => {
   ])("formats %i ms as %s", (ms, expected) => {
     expect(formatLrcTimestamp(ms)).toBe(expected);
   });
+});
+
+describe("parseLrcTimestamp", () => {
+  it.each([
+    ["01:23", 83_000],
+    ["1:23.4", 83_400],
+    ["01:23.45", 83_450],
+    ["01:23.456", 83_456],
+    ["01:23:45", 83_450],
+  ])("parses %s as %i ms", (text, expected) => {
+    expect(parseLrcTimestamp(text)).toBe(expected);
+  });
+
+  it.each(["", "abc", "83", "1:2:3:4", "01:23.4567", "-1:00"])(
+    "rejects %j",
+    (text) => {
+      expect(parseLrcTimestamp(text)).toBeNull();
+    },
+  );
 });

@@ -35,14 +35,9 @@ export function parseLrc(source: string): ParsedLrc {
     const timestamps: number[] = [];
 
     for (const [, tag] of tagBlock.matchAll(TAG)) {
-      const time = TIMESTAMP.exec(tag);
-      if (time) {
-        const [, minutes, seconds, fraction = ""] = time;
-        timestamps.push(
-          Number(minutes) * 60_000 +
-            Number(seconds) * 1000 +
-            Number(fraction.padEnd(3, "0")),
-        );
+      const timeMs = parseLrcTimestamp(tag);
+      if (timeMs !== null) {
+        timestamps.push(timeMs);
         continue;
       }
 
@@ -123,6 +118,18 @@ export function formatLrcTimestamp(ms: number): string {
   const seconds = Math.floor((totalHundredths % 6000) / 100);
   const hundredths = totalHundredths % 100;
   return `${pad(minutes)}:${pad(seconds)}.${pad(hundredths)}`;
+}
+
+/** Accepts `mm:ss`, with an optional fraction of one to three digits. */
+export function parseLrcTimestamp(text: string): number | null {
+  const match = TIMESTAMP.exec(text);
+  if (!match) return null;
+  const [, minutes, seconds, fraction = ""] = match;
+  return (
+    Number(minutes) * 60_000 +
+    Number(seconds) * 1000 +
+    Number(fraction.padEnd(3, "0"))
+  );
 }
 
 function pad(value: number): string {

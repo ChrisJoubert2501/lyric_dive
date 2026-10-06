@@ -27,8 +27,8 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Tap a key during playback to timestamp the selected line and advance to the next
 - [x] Click a line to seek to it
 - [x] Highlight and scroll to the active line during playback
-- [ ] Nudge a timestamp by small steps (e.g. ±50 ms), and clear it
-- [ ] Edit, insert, delete and reorder lines
+- [x] Nudge a timestamp by small steps (e.g. ±50 ms), type it in directly, and clear it
+- [x] Edit, insert, delete and reorder lines, and replace all lyrics
 - [ ] Edit title, artist and album manually
 - [ ] Save and open JSON project files ([ADR 0002](decisions/0002-json-project-files.md)), including relinking a missing MP3
 - [ ] Import and export LRC
