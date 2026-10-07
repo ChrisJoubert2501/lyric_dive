@@ -13,6 +13,7 @@ import {
   type LyricLine,
 } from "./model";
 import { lineAfter, type ProjectAction } from "./project";
+import { reconcileLines } from "./reconcile";
 
 const NUDGE_MS = 50;
 
@@ -46,18 +47,20 @@ export function LyricsEditor({
 
   function applyLyrics(text: string) {
     run(async () => {
-      const losesTiming = lines.some((line) => line.startMs !== null);
+      const next = reconcileLines(lines, linesFromText(text));
+      const kept = new Set(next.map((line) => line.id));
+      const lost = lines.filter(
+        (line) => line.startMs !== null && !kept.has(line.id),
+      ).length;
       if (
-        losesTiming &&
-        !(await confirm("All timestamps will be removed.", {
-          title: "Replace the lyrics?",
-          kind: "warning",
-          okLabel: "Replace",
-        }))
+        lost > 0 &&
+        !(await confirm(
+          `The timestamps of ${lost} changed or removed ${lost === 1 ? "line" : "lines"} will be lost.`,
+          { title: "Replace the lyrics?", kind: "warning", okLabel: "Replace" },
+        ))
       ) {
         return;
       }
-      const next = linesFromText(text);
       dispatch({ type: "linesReplaced", lines: next });
       setSelectedId(next[0]?.id ?? null);
       setEditing(null);

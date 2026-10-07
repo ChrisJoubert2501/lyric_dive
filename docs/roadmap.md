@@ -42,7 +42,7 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Undo/redo
 - [x] Autosave to a recovery file ([ADR 0008](decisions/0008-autosave-to-a-recovery-file.md))
 - [x] Warn about unsaved changes when the window is closed
-- [ ] Keep the timestamps of unchanged lines when replacing the lyrics
+- [x] Keep the timestamps of unchanged lines when replacing the lyrics
 - [ ] Warn about lines that start with `[` (e.g. `[Chorus]`), which LRC reads as tags
 - [ ] A documented keyboard shortcut scheme
 - [ ] Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
