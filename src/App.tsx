@@ -1,6 +1,10 @@
 import { useEffect, useEffectEvent, useReducer, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { confirm, open, save } from "@tauri-apps/plugin-dialog";
+import {
+  getCurrentWindow,
+  type CloseRequestedEvent,
+} from "@tauri-apps/api/window";
+import { confirm, message, open, save } from "@tauri-apps/plugin-dialog";
 import { PlayerControls } from "./audio/PlayerControls";
 import { usePlayback } from "./audio/usePlayback";
 import { LyricsEditor } from "./lyrics/LyricsEditor";
@@ -21,6 +25,8 @@ import "./App.css";
 
 const PROJECT_FILTERS = [{ name: "Lyric Dive project", extensions: ["json"] }];
 const LRC_FILTERS = [{ name: "LRC lyrics", extensions: ["lrc"] }];
+const SAVE_LABEL = "Save";
+const DISCARD_LABEL = "Don't save";
 
 interface ProjectFile {
   path: string | null;
@@ -75,7 +81,31 @@ function App() {
     offerRecoveryOnStart();
   }, []);
 
-  async function run(action: () => Promise<void>) {
+  const onCloseRequested = useEffectEvent(
+    async (event: CloseRequestedEvent) => {
+      if (!dirty) return;
+      // The window must be kept open before awaiting the user's answer;
+      // it is then closed explicitly once the changes are dealt with.
+      event.preventDefault();
+      await run(async () => {
+        if (!(await askToSaveChanges())) return;
+        // Closing also unmounts autosave, so it cannot delete the recovery
+        // file itself once the changes were saved or discarded.
+        await invoke("delete_recovery");
+        await getCurrentWindow().destroy();
+      });
+    },
+  );
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onCloseRequested((event) =>
+      onCloseRequested(event),
+    );
+    return () => {
+      unlisten.then((stop) => stop());
+    };
+  }, []);
+
+  async function run(action: () => Promise<unknown>) {
     setError(null);
     setNotice(null);
     try {
@@ -115,15 +145,19 @@ function App() {
     run(status.playing ? pause : play);
   }
 
-  async function confirmDiscard(): Promise<boolean> {
-    return (
-      !dirty ||
-      confirm("Your unsaved changes will be lost.", {
-        title: "Discard unsaved changes?",
+  /** Returns whether to go ahead, i.e. the changes were saved or discarded. */
+  async function askToSaveChanges(): Promise<boolean> {
+    if (!dirty) return true;
+    const answer = await message(
+      "Your changes will be lost if you don't save them.",
+      {
+        title: "Save changes?",
         kind: "warning",
-        okLabel: "Discard",
-      })
+        buttons: { yes: SAVE_LABEL, no: DISCARD_LABEL, cancel: "Cancel" },
+      },
     );
+    if (answer === SAVE_LABEL) return saveProject(false);
+    return answer === DISCARD_LABEL;
   }
 
   async function startProject(
@@ -165,11 +199,11 @@ function App() {
   }
 
   async function newProject() {
-    if (await confirmDiscard()) await startProject(createProject(), null);
+    if (await askToSaveChanges()) await startProject(createProject(), null);
   }
 
   async function openProject() {
-    if (!(await confirmDiscard())) return;
+    if (!(await askToSaveChanges())) return;
     const path = await open({
       multiple: false,
       directory: false,
@@ -180,7 +214,8 @@ function App() {
     await startProject(next, path);
   }
 
-  async function saveProject(saveAs: boolean) {
+  /** Returns false if the user cancelled choosing where to save. */
+  async function saveProject(saveAs: boolean): Promise<boolean> {
     const path =
       saveAs || !file.path
         ? await save({
@@ -190,12 +225,13 @@ function App() {
               suggestedFileName(project.metadata, ".lyricdive.json"),
           })
         : file.path;
-    if (!path) return;
+    if (!path) return false;
     await invoke("write_text_file", {
       path,
       contents: serializeProject(project),
     });
     setFile({ path, saved: project });
+    return true;
   }
 
   async function importLrc() {
