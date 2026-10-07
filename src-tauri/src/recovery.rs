@@ -66,7 +66,7 @@ pub fn delete_recovery<R: Runtime>(app: AppHandle<R>) -> Result<(), FileError> {
 }
 
 fn recovery_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, FileError> {
-    let dir = app.path().app_data_dir().map_err(FileError::AppData)?;
+    let dir = app.path().app_local_data_dir().map_err(FileError::AppData)?;
     Ok(dir.join("recovery.json"))
 }
 

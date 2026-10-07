@@ -11,7 +11,7 @@ Phase 2 aims for "no work is lost on a crash or accidental edit". Until now, cha
 
 Implemented in `src-tauri/src/recovery.rs` and `src/useAutosave.ts`:
 
-- While the project has unsaved changes, the frontend writes it to a single recovery file in the app's data folder (`recovery.json`), one second after the last change. The file also records the path of the project file the changes belong to, if any.
+- While the project has unsaved changes, the frontend writes it to a single recovery file (`recovery.json`) in the app's local data folder, one second after the last change. The file also records the path of the project file the changes belong to, if any. The folder is local rather than roaming because the recovery file belongs to this machine: on Windows a roaming folder can be synced to other machines, which could offer to restore changes whose project and audio paths do not exist there. On Linux and macOS both are the same folder, e.g. `~/.local/share/com.chrisjoubert.lyricdive`.
 - When the project matches what was last saved again (after saving, undoing back to the saved state, or starting or opening another project), the recovery file is deleted.
 - On start, if a recovery file exists, the app offers to restore it. A restored project counts as unsaved, so the user still decides when it is written to the project file. Choosing "Discard" deletes the recovery file.
 - Rust chooses the recovery file's location; the frontend cannot pass a path. Rust only records a project path that is already in the fs scope, and reading the recovery file grants that path and the project's audio path again, as `read_project` does for audio ([ADR 0007](0007-project-file-access-through-rust.md)).
