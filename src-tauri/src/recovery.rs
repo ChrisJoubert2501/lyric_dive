@@ -1,0 +1,132 @@
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager, Runtime};
+use tauri_plugin_fs::FsExt;
+
+use crate::files::{self, FileError};
+
+/// Unsaved changes, kept apart from the project file so that a crash cannot
+/// lose them and an unwanted edit cannot overwrite the saved version.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Recovery {
+    /// The project file the changes belong to, if it was ever saved.
+    project_path: Option<PathBuf>,
+    /// The project as the frontend serialised it.
+    project: String,
+}
+
+#[tauri::command]
+pub fn write_recovery<R: Runtime>(
+    app: AppHandle<R>,
+    project_path: Option<PathBuf>,
+    project: String,
+) -> Result<(), FileError> {
+    // Restoring grants access to the project path, so only a path the user
+    // already chose may be recorded.
+    if let Some(path) = &project_path
+        && !app.fs_scope().is_allowed(path)
+    {
+        return Err(FileError::PathNotAllowed);
+    }
+    write(
+        &recovery_path(&app)?,
+        &Recovery {
+            project_path,
+            project,
+        },
+    )
+}
+
+/// Also grants access to the project file and its audio again, so that the
+/// restored project can be saved and played as before the crash.
+#[tauri::command]
+pub fn read_recovery<R: Runtime>(app: AppHandle<R>) -> Result<Option<Recovery>, FileError> {
+    let Some(recovery) = read(&recovery_path(&app)?)? else {
+        return Ok(None);
+    };
+    if let Some(path) = &recovery.project_path {
+        files::allow_file(&app, path.clone())?;
+    }
+    if let Some(audio_path) = files::audio_path(&recovery.project) {
+        files::allow_file(&app, audio_path)?;
+    }
+    Ok(Some(recovery))
+}
+
+#[tauri::command]
+pub fn delete_recovery<R: Runtime>(app: AppHandle<R>) -> Result<(), FileError> {
+    match fs::remove_file(recovery_path(&app)?) {
+        Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error.into()),
+        _ => Ok(()),
+    }
+}
+
+fn recovery_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, FileError> {
+    let dir = app.path().app_data_dir().map_err(FileError::AppData)?;
+    Ok(dir.join("recovery.json"))
+}
+
+fn write(path: &Path, recovery: &Recovery) -> Result<(), FileError> {
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    files::write_atomically(path, &serde_json::to_vec_pretty(recovery)?)?;
+    Ok(())
+}
+
+fn read(path: &Path) -> Result<Option<Recovery>, FileError> {
+    match fs::read_to_string(path) {
+        Ok(contents) => Ok(Some(serde_json::from_str(&contents)?)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_dir(name: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("lyric-dive-recovery-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    #[test]
+    fn creates_the_folder_and_round_trips() {
+        let dir = test_dir("round-trip");
+        let path = dir.join("data").join("recovery.json");
+        let recovery = Recovery {
+            project_path: Some(PathBuf::from("/music/song.lyricdive.json")),
+            project: r#"{"audioPath": "/music/song.mp3"}"#.to_owned(),
+        };
+
+        write(&path, &recovery).unwrap();
+
+        assert_eq!(read(&path).unwrap(), Some(recovery));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn reads_nothing_when_there_is_no_recovery_file() {
+        let dir = test_dir("missing");
+
+        assert_eq!(read(&dir.join("recovery.json")).unwrap(), None);
+    }
+
+    #[test]
+    fn reports_a_damaged_recovery_file() {
+        let dir = test_dir("damaged");
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("recovery.json");
+        fs::write(&path, "not json").unwrap();
+
+        assert!(matches!(read(&path), Err(FileError::Recovery(_))));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+}

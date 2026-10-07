@@ -37,18 +37,19 @@ The frontend tests, type check and lint only need Node, so they work without the
 
 ## Project layout
 
-| Path          | Purpose                                                                               |
-| ------------- | ------------------------------------------------------------------------------------- |
-| `src/lyrics/` | Lyrics data model, project edits, LRC import/export, and the lyrics UI.               |
-| `src/audio/`  | Playback controls, and a hook that drives playback in Rust and polls its position.    |
-| `src/App.tsx` | Application shell: holds the project state and the keyboard shortcuts.                |
-| `src-tauri/`  | Rust side: window, file dialog, MP3 decoding, audio playback and project file access. |
+| Path          | Purpose                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| `src/lyrics/` | Lyrics data model, project edits, LRC import/export, and the lyrics UI.                         |
+| `src/audio/`  | Playback controls, and a hook that drives playback in Rust and polls its position.              |
+| `src/App.tsx` | Application shell: holds the project state and the keyboard shortcuts.                          |
+| `src-tauri/`  | Rust side: window, file dialog, MP3 decoding, audio playback, project file access and autosave. |
 
 ## Design decisions
 
 - **Text, timing and translations are separate fields on each line**, with timestamps stored as integer milliseconds and every line given a stable ID, so editing text never disturbs timing.
 - **The project file (JSON) is the source of truth**; LRC is an import/export format only, because it cannot represent translations or untimed lines.
 - **Audio is decoded and played in Rust, not in the webview**, because WebKitGTK's media playback skipped and drifted out of sync. The reported position is the sample coming out of the speakers, so it cannot drift from what the user hears.
+- **Autosave writes to a separate recovery file**, not the project file, so a crash loses at most a second of work but an accidental edit never overwrites the saved version.
 - **The frontend has no file system permissions.** Project files are read and written by Rust commands, and audio is only played from files the user chose or that an opened project refers to.
 
 The reasoning behind these, and the plan ahead, are in [`docs/`](docs/): see the [roadmap](docs/roadmap.md), the [decision records](docs/decisions/README.md), and [notes](docs/notes/) on investigations whose options were not (yet) adopted.

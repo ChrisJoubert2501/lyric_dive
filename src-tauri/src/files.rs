@@ -11,8 +11,12 @@ pub enum FileError {
     PathNotAllowed,
     #[error("{0}")]
     Io(#[from] io::Error),
-    #[error("cannot grant access to the project's audio file: {0}")]
+    #[error("cannot grant access to the project's files: {0}")]
     Scope(#[from] tauri::Error),
+    #[error("cannot find the app's data folder: {0}")]
+    AppData(tauri::Error),
+    #[error("the recovery file is damaged: {0}")]
+    Recovery(#[from] serde_json::Error),
 }
 
 impl serde::Serialize for FileError {
@@ -32,11 +36,16 @@ impl serde::Serialize for FileError {
 pub fn read_project<R: Runtime>(app: AppHandle<R>, path: PathBuf) -> Result<String, FileError> {
     let contents = read_text_file(app.clone(), path)?;
     if let Some(audio_path) = audio_path(&contents) {
-        // The scope compares existing files by their canonical path.
-        app.fs_scope()
-            .allow_file(fs::canonicalize(&audio_path).unwrap_or(audio_path))?;
+        allow_file(&app, audio_path)?;
     }
     Ok(contents)
+}
+
+pub(crate) fn allow_file<R: Runtime>(app: &AppHandle<R>, path: PathBuf) -> Result<(), FileError> {
+    // The scope compares existing files by their canonical path.
+    app.fs_scope()
+        .allow_file(fs::canonicalize(&path).unwrap_or(path))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -62,7 +71,7 @@ pub fn write_text_file<R: Runtime>(
 
 /// Invalid JSON is not an error here: the frontend reports it when it
 /// validates the file.
-fn audio_path(contents: &str) -> Option<PathBuf> {
+pub(crate) fn audio_path(contents: &str) -> Option<PathBuf> {
     let project: serde_json::Value = serde_json::from_str(contents).ok()?;
     let path = Path::new(project.get("audioPath")?.as_str()?);
     path.is_absolute().then(|| path.to_path_buf())
@@ -70,7 +79,7 @@ fn audio_path(contents: &str) -> Option<PathBuf> {
 
 /// Writes a temporary file next to the target and renames it into place, so a
 /// crash or a full disk during a save leaves the previous version intact.
-fn write_atomically(path: &Path, contents: &[u8]) -> io::Result<()> {
+pub(crate) fn write_atomically(path: &Path, contents: &[u8]) -> io::Result<()> {
     let mut temp_name = path
         .file_name()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "not a file path"))?

@@ -13,6 +13,7 @@ Write a new record when a decision is hard to reverse, affects several parts of 
 | [0005](0005-audio-as-blob-urls.md)               | Load audio into memory as Blob URLs, not `asset://`                 | Superseded by 0006 |
 | [0006](0006-native-rust-playback.md)             | Play audio natively in Rust instead of in the webview               | Accepted           |
 | [0007](0007-project-file-access-through-rust.md) | Project files go through Rust; a project grants access to its audio | Accepted           |
+| [0008](0008-autosave-to-a-recovery-file.md)      | Autosave to a separate recovery file, not to the project file       | Accepted           |
 
 ## Template
 

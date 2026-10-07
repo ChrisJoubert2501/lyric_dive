@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useEffectEvent, useReducer, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm, open, save } from "@tauri-apps/plugin-dialog";
 import { PlayerControls } from "./audio/PlayerControls";
@@ -15,6 +15,7 @@ import {
 } from "./lyrics/projectFile";
 import { canRedo, canUndo, createHistory } from "./history";
 import { fileName, withExtension } from "./paths";
+import { useAutosave, type Recovery } from "./useAutosave";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import "./App.css";
 
@@ -23,8 +24,12 @@ const LRC_FILTERS = [{ name: "LRC lyrics", extensions: ["lrc"] }];
 
 interface ProjectFile {
   path: string | null;
-  /** The project as last opened or saved, to detect unsaved changes. */
-  saved: LyricProject;
+  /**
+   * The project as last opened or saved, to detect unsaved changes. Null when
+   * unknown, e.g. after restoring unsaved changes, so the project counts as
+   * changed.
+   */
+  saved: LyricProject | null;
 }
 
 function App() {
@@ -46,9 +51,29 @@ function App() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [recoveryOffered, setRecoveryOffered] = useState(false);
+  // React runs effects twice in development, which would otherwise ask twice.
+  const recoveryRequested = useRef(false);
   const { status, load, unload, play, pause, seek, refresh } = usePlayback();
 
   const dirty = project !== file.saved;
+
+  useAutosave({
+    project,
+    projectPath: file.path,
+    dirty,
+    enabled: recoveryOffered,
+    onError: (error) => setError(`Autosave failed: ${String(error)}`),
+  });
+
+  const offerRecoveryOnStart = useEffectEvent(() => {
+    run(offerRecovery).then(() => setRecoveryOffered(true));
+  });
+  useEffect(() => {
+    if (recoveryRequested.current) return;
+    recoveryRequested.current = true;
+    offerRecoveryOnStart();
+  }, []);
 
   async function run(action: () => Promise<void>) {
     setError(null);
@@ -101,13 +126,42 @@ function App() {
     );
   }
 
-  async function startProject(next: LyricProject, path: string | null) {
+  async function startProject(
+    next: LyricProject,
+    path: string | null,
+    saved: LyricProject | null = next,
+  ) {
     await unload();
     dispatch({ type: "projectReplaced", project: next });
-    setFile({ path, saved: next });
+    setFile({ path, saved });
     setEditorKey((key) => key + 1);
     setAudioError(null);
     if (next.audioPath) await loadAudio(next.audioPath);
+  }
+
+  async function offerRecovery() {
+    const recovery = await invoke<Recovery | null>("read_recovery");
+    if (!recovery) return;
+    const name = recovery.projectPath
+      ? fileName(recovery.projectPath)
+      : "an untitled project";
+    if (
+      await confirm(
+        `Lyric Dive closed before your changes to ${name} were saved.`,
+        {
+          title: "Restore unsaved changes?",
+          kind: "warning",
+          okLabel: "Restore",
+          cancelLabel: "Discard",
+        },
+      )
+    ) {
+      await startProject(
+        parseProject(recovery.project),
+        recovery.projectPath,
+        null,
+      );
+    }
   }
 
   async function newProject() {
