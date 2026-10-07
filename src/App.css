@@ -150,6 +150,14 @@ body {
   opacity: 0.7;
 }
 
+.follow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
 .lines {
   margin: 0;
   padding: 0;

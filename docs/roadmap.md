@@ -45,6 +45,8 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Keep the timestamps of unchanged lines when replacing the lyrics
 - [ ] Warn about lines that start with `[` (e.g. `[Chorus]`), which LRC reads as tags
 - [ ] A documented keyboard shortcut scheme
+- [x] Turn off following the active line during playback, to look at other lines (remembered between sessions)
+- [x] Reopen the last project on start ([ADR 0009](decisions/0009-remember-the-last-project-in-rust.md))
 - [ ] Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
 - [ ] Waveform view for fine-tuning timestamps
 - [ ] Playback speed control for fast passages

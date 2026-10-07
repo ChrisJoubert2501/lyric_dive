@@ -1,5 +1,18 @@
 import { useEffect, useEffectEvent } from "react";
 
+// A clicked checkbox or slider keeps the focus, which would otherwise switch
+// off every shortcut until the user clicks elsewhere.
+const NON_TEXT_INPUTS = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
 export interface Shortcut {
   run: () => void;
   /** Whether holding the key down runs the shortcut repeatedly. */
@@ -53,6 +66,8 @@ export function shortcutName(event: KeyState): string {
 
 function isTextEntry(target: EventTarget | null): boolean {
   if (target instanceof HTMLTextAreaElement) return true;
-  if (target instanceof HTMLInputElement) return target.type !== "range";
+  if (target instanceof HTMLInputElement) {
+    return !NON_TEXT_INPUTS.has(target.type);
+  }
   return target instanceof HTMLElement && target.isContentEditable;
 }

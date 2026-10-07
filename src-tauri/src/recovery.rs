@@ -1,12 +1,12 @@
-use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 use tauri_plugin_fs::FsExt;
 
 use crate::files::{self, FileError};
+
+const RECOVERY_FILE: &str = "recovery.json";
 
 /// Unsaved changes, kept apart from the project file so that a crash cannot
 /// lose them and an unwanted edit cannot overwrite the saved version.
@@ -33,7 +33,7 @@ pub fn write_recovery<R: Runtime>(
         return Err(FileError::PathNotAllowed);
     }
     write(
-        &recovery_path(&app)?,
+        &files::data_file(&app, RECOVERY_FILE)?,
         &Recovery {
             project_path,
             project,
@@ -45,7 +45,7 @@ pub fn write_recovery<R: Runtime>(
 /// restored project can be saved and played as before the crash.
 #[tauri::command]
 pub fn read_recovery<R: Runtime>(app: AppHandle<R>) -> Result<Option<Recovery>, FileError> {
-    let Some(recovery) = read(&recovery_path(&app)?)? else {
+    let Some(recovery) = read(&files::data_file(&app, RECOVERY_FILE)?)? else {
         return Ok(None);
     };
     if let Some(path) = &recovery.project_path {
@@ -59,36 +59,26 @@ pub fn read_recovery<R: Runtime>(app: AppHandle<R>) -> Result<Option<Recovery>, 
 
 #[tauri::command]
 pub fn delete_recovery<R: Runtime>(app: AppHandle<R>) -> Result<(), FileError> {
-    match fs::remove_file(recovery_path(&app)?) {
-        Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error.into()),
-        _ => Ok(()),
-    }
-}
-
-fn recovery_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, FileError> {
-    let dir = app.path().app_local_data_dir().map_err(FileError::AppData)?;
-    Ok(dir.join("recovery.json"))
+    files::remove_data_file(&files::data_file(&app, RECOVERY_FILE)?)?;
+    Ok(())
 }
 
 fn write(path: &Path, recovery: &Recovery) -> Result<(), FileError> {
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
-    }
-    files::write_atomically(path, &serde_json::to_vec_pretty(recovery)?)?;
+    files::write_data_file(path, &serde_json::to_vec_pretty(recovery)?)?;
     Ok(())
 }
 
 fn read(path: &Path) -> Result<Option<Recovery>, FileError> {
-    match fs::read_to_string(path) {
-        Ok(contents) => Ok(Some(serde_json::from_str(&contents)?)),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(error.into()),
+    match files::read_data_file(path)? {
+        Some(contents) => Ok(Some(serde_json::from_str(&contents)?)),
+        None => Ok(None),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     fn test_dir(name: &str) -> PathBuf {
         let dir =

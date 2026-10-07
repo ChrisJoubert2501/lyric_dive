@@ -15,6 +15,8 @@ interface LineListProps {
   selectedId: LineId | null;
   editing: LineEdit | null;
   playing: boolean;
+  /** Whether the list follows the active line while playing. */
+  follow: boolean;
   onSelect: (line: LyricLine) => void;
   onEdit: (line: LyricLine, field: LineField) => void;
   /**
@@ -67,23 +69,26 @@ function LineRow({
   selected,
   editingField,
   playing,
+  follow,
   onSelect,
   onEdit,
   onFinishEditing,
 }: LineRowProps) {
   const ref = useRef<HTMLLIElement>(null);
   const isPlaying = useEffectEvent(() => playing);
+  const followsSong = useEffectEvent(() => playing && follow);
 
-  // While playing, the list follows the song; while paused, it follows the
-  // selection. Following both at once would start two competing scrolls
-  // whenever a stamp moves the active and the selected line together.
+  // The list follows either the song or the selection, never both: following
+  // both would start two competing scrolls whenever a stamp moves the active
+  // and the selected line together. The selection is still kept visible when
+  // not following the song, so the keyboard can move it and stamp lines.
   useEffect(() => {
-    if (active && isPlaying()) {
+    if (active && follow && isPlaying()) {
       ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
     }
-  }, [active]);
+  }, [active, follow]);
   useEffect(() => {
-    if (selected && !isPlaying()) {
+    if (selected && !followsSong()) {
       ref.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [selected]);

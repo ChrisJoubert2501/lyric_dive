@@ -1,5 +1,6 @@
 mod audio;
 mod files;
+mod last_project;
 mod playback;
 mod recovery;
 
@@ -24,6 +25,8 @@ pub fn run() {
             recovery::write_recovery,
             recovery::read_recovery,
             recovery::delete_recovery,
+            last_project::remember_project,
+            last_project::last_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

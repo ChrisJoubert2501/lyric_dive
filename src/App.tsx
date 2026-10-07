@@ -57,9 +57,9 @@ function App() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [recoveryOffered, setRecoveryOffered] = useState(false);
-  // React runs effects twice in development, which would otherwise ask twice.
-  const recoveryRequested = useRef(false);
+  const [started, setStarted] = useState(false);
+  // React runs effects twice in development, which would otherwise start twice.
+  const startRequested = useRef(false);
   const { status, load, unload, play, pause, seek, refresh } = usePlayback();
 
   const dirty = project !== file.saved;
@@ -68,17 +68,24 @@ function App() {
     project,
     projectPath: file.path,
     dirty,
-    enabled: recoveryOffered,
+    enabled: started,
     onError: (error) => setError(`Autosave failed: ${String(error)}`),
   });
 
-  const offerRecoveryOnStart = useEffectEvent(() => {
-    run(offerRecovery).then(() => setRecoveryOffered(true));
+  useEffect(() => {
+    if (!started) return;
+    invoke("remember_project", { path: file.path }).catch((error) =>
+      setError(`The open project could not be remembered: ${String(error)}`),
+    );
+  }, [started, file.path]);
+
+  const onStart = useEffectEvent(() => {
+    run(restoreSession).then(() => setStarted(true));
   });
   useEffect(() => {
-    if (recoveryRequested.current) return;
-    recoveryRequested.current = true;
-    offerRecoveryOnStart();
+    if (startRequested.current) return;
+    startRequested.current = true;
+    onStart();
   }, []);
 
   const onCloseRequested = useEffectEvent(
@@ -111,7 +118,7 @@ function App() {
     try {
       await action();
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      setError(errorMessage(error));
     }
   }
 
@@ -173,9 +180,15 @@ function App() {
     if (next.audioPath) await loadAudio(next.audioPath);
   }
 
-  async function offerRecovery() {
+  /** Restores unsaved changes after a crash, or else reopens the last project. */
+  async function restoreSession() {
+    if (!(await offerRecovery())) await reopenLastProject();
+  }
+
+  /** Returns whether the unsaved changes were restored. */
+  async function offerRecovery(): Promise<boolean> {
     const recovery = await invoke<Recovery | null>("read_recovery");
-    if (!recovery) return;
+    if (!recovery) return false;
     const name = recovery.projectPath
       ? fileName(recovery.projectPath)
       : "an untitled project";
@@ -195,7 +208,24 @@ function App() {
         recovery.projectPath,
         null,
       );
+      return true;
     }
+    return false;
+  }
+
+  async function reopenLastProject() {
+    const path = await invoke<string | null>("last_project");
+    if (!path) return;
+    let next: LyricProject;
+    try {
+      next = parseProject(await invoke<string>("read_project", { path }));
+    } catch (error) {
+      throw new Error(
+        `${fileName(path)} could not be reopened: ${errorMessage(error)}`,
+        { cause: error },
+      );
+    }
+    await startProject(next, path);
   }
 
   async function newProject() {
@@ -398,6 +428,10 @@ function App() {
       />
     </main>
   );
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export default App;

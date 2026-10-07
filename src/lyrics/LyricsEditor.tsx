@@ -2,6 +2,7 @@ import { useState, type Dispatch } from "react";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import type { PlaybackStatus } from "../audio/usePlayback";
 import { useKeyboardShortcuts } from "../useKeyboardShortcuts";
+import { useStoredState } from "../useStoredState";
 import { LineList, type LineEdit, type LineField } from "./LineList";
 import { formatLrcTimestamp, parseLrcTimestamp } from "./lrc";
 import { LyricsInput } from "./LyricsInput";
@@ -39,6 +40,7 @@ export function LyricsEditor({
   );
   const [editing, setEditing] = useState<LineEdit | null>(null);
   const [replacing, setReplacing] = useState(false);
+  const [follow, setFollow] = useStoredState("followLyrics", true);
 
   const showInput = lines.length === 0 || replacing;
   const selectedIndex = lines.findIndex((line) => line.id === selectedId);
@@ -168,6 +170,7 @@ export function LyricsEditor({
           ArrowLeft: { run: () => nudgeSelectedLine(-NUDGE_MS), repeat: true },
           ArrowRight: { run: () => nudgeSelectedLine(NUDGE_MS), repeat: true },
           Backspace: { run: clearSelectedTime },
+          f: { run: () => setFollow((follow) => !follow) },
         },
   );
 
@@ -194,6 +197,14 @@ export function LyricsEditor({
         <kbd>→</kbd> nudge {NUDGE_MS} ms · <kbd>Backspace</kbd> clear time ·
         double-click a time or text to edit it
       </p>
+      <label className="follow">
+        <input
+          type="checkbox"
+          checked={follow}
+          onChange={(event) => setFollow(event.target.checked)}
+        />
+        Follow lyrics while playing <kbd>F</kbd>
+      </label>
       <div className="line-actions" role="toolbar" aria-label="Selected line">
         <button
           type="button"
@@ -268,6 +279,7 @@ export function LyricsEditor({
         selectedId={selectedId}
         editing={editing}
         playing={status?.playing ?? false}
+        follow={follow}
         onSelect={selectLine}
         onEdit={editLine}
         onFinishEditing={finishEditing}

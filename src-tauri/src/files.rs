@@ -2,7 +2,7 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_fs::FsExt;
 
 #[derive(Debug, thiserror::Error)]
@@ -69,6 +69,39 @@ pub fn write_text_file<R: Runtime>(
     Ok(())
 }
 
+/// A file in the app's local data folder, which belongs to this machine
+/// ([ADR 0008](../../docs/decisions/0008-autosave-to-a-recovery-file.md)).
+pub(crate) fn data_file<R: Runtime>(app: &AppHandle<R>, name: &str) -> Result<PathBuf, FileError> {
+    let dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(FileError::AppData)?;
+    Ok(dir.join(name))
+}
+
+/// Creates the data folder on first use.
+pub(crate) fn write_data_file(path: &Path, contents: &[u8]) -> io::Result<()> {
+    if let Some(dir) = path.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    write_atomically(path, contents)
+}
+
+pub(crate) fn read_data_file(path: &Path) -> io::Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(contents) => Ok(Some(contents)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+pub(crate) fn remove_data_file(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
+        _ => Ok(()),
+    }
+}
+
 /// Invalid JSON is not an error here: the frontend reports it when it
 /// validates the file.
 pub(crate) fn audio_path(contents: &str) -> Option<PathBuf> {
@@ -129,5 +162,15 @@ mod tests {
         assert_eq!(fs::read_to_string(&path).unwrap(), "second");
         assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
         fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn treats_a_missing_data_file_as_absent() {
+        let path = std::env::temp_dir()
+            .join(format!("lyric-dive-missing-{}", std::process::id()))
+            .join("last-project.txt");
+
+        assert_eq!(read_data_file(&path).unwrap(), None);
+        remove_data_file(&path).unwrap();
     }
 }
