@@ -11,6 +11,7 @@ export interface ParsedLrc {
 }
 
 const LEADING_TAGS = /^((?:\[[^\]]*\])+)(.*)$/;
+const LEADING_TAG_TEXT = /^\s*(?:\[[^\]]*\]\s*)+/;
 const TAG = /\[([^\]]*)\]/g;
 const TIMESTAMP = /^(\d+):(\d{1,2})(?:[.:](\d{1,3}))?$/;
 const ID_TAG = /^([a-zA-Z]+):(.*)$/;
@@ -81,7 +82,8 @@ export function parseLrc(source: string): ParsedLrc {
 }
 
 /**
- * Lines in `linesOmittedFromLrc` are left out. Timestamps are written in
+ * Lines in `linesOmittedFromLrc` are left out, and those in
+ * `linesShortenedInLrc` lose their leading bracketed text. Timestamps are written in
  * hundredths of a second, so millisecond precision is rounded to the nearest
  * 10 ms.
  */
@@ -100,7 +102,7 @@ export function serializeLrc(
     .sort((a, b) => a.startMs - b.startMs);
 
   timed.forEach((line, index) => {
-    output.push(`[${formatLrcTimestamp(line.startMs)}]${line.text}`);
+    output.push(`[${formatLrcTimestamp(line.startMs)}]${lrcText(line)}`);
     const next = timed[index + 1];
     if (line.endMs !== null && (!next || line.endMs < next.startMs)) {
       output.push(`[${formatLrcTimestamp(line.endMs)}]`);
@@ -112,16 +114,33 @@ export function serializeLrc(
 
 /**
  * LRC has no way to represent an untimed line, and a timed line without text
- * would be read back as the previous line's end time.
+ * would be read back as the previous line's end time. A line with only
+ * bracketed text, e.g. `[Chorus]`, has no text once its tags are removed.
  */
 export function linesOmittedFromLrc(lines: LyricLine[]): LyricLine[] {
   return lines.filter((line) => !isExportable(line));
 }
 
+export function linesShortenedInLrc(lines: LyricLine[]): LyricLine[] {
+  return lines.filter((line) => isExportable(line) && hasLeadingTag(line.text));
+}
+
+/**
+ * LRC has no way to escape a `[`, so players read bracketed text at the start
+ * of a line as tags: they drop it, or worse, take `[ar:...]` as the artist.
+ */
+export function hasLeadingTag(text: string): boolean {
+  return LEADING_TAG_TEXT.test(text);
+}
+
+function lrcText(line: LyricLine): string {
+  return line.text.replace(LEADING_TAG_TEXT, "").trim();
+}
+
 function isExportable(
   line: LyricLine,
 ): line is LyricLine & { startMs: number } {
-  return line.startMs !== null && line.text.trim() !== "";
+  return line.startMs !== null && lrcText(line) !== "";
 }
 
 export function formatLrcTimestamp(ms: number): string {

@@ -200,6 +200,13 @@ body {
   opacity: 0.6;
 }
 
+.line .tag-warning {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #b8860b;
+  white-space: nowrap;
+}
+
 .line.selected .line-content {
   background-color: rgb(128 128 128 / 0.2);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { formatLrcTimestamp } from "./lrc";
+import { formatLrcTimestamp, hasLeadingTag } from "./lrc";
 import type { LineId, LyricLine } from "./model";
 
 export type LineField = "text" | "time";
@@ -151,6 +151,14 @@ function LineRow({
           {timestamp}
         </span>
         <span className="text">{line.text}</span>
+        {hasLeadingTag(line.text) && (
+          <span
+            className="tag-warning"
+            title="LRC players read text in square brackets at the start of a line as a tag, so it is removed on export, along with the line if nothing else is left."
+          >
+            ⚠ Read as a tag in LRC
+          </span>
+        )}
       </button>
     </li>
   );

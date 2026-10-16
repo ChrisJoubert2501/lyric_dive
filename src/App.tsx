@@ -9,7 +9,12 @@ import { PlayerControls } from "./audio/PlayerControls";
 import { usePlayback } from "./audio/usePlayback";
 import { LyricsEditor } from "./lyrics/LyricsEditor";
 import { SongDetails } from "./lyrics/SongDetails";
-import { linesOmittedFromLrc, parseLrc, serializeLrc } from "./lyrics/lrc";
+import {
+  linesOmittedFromLrc,
+  linesShortenedInLrc,
+  parseLrc,
+  serializeLrc,
+} from "./lyrics/lrc";
 import { createProject, type LyricProject } from "./lyrics/model";
 import { projectHistoryReducer } from "./lyrics/project";
 import {
@@ -296,12 +301,20 @@ function App() {
     if (omitted === project.lines.length) {
       throw new Error("No line has both a timestamp and text yet.");
     }
-    if (
+    const shortened = linesShortenedInLrc(project.lines).length;
+    const warnings = [
       omitted > 0 &&
-      !(await confirm(
-        `${omitted} ${omitted === 1 ? "line has" : "lines have"} no timestamp or no text and will be left out.`,
-        { title: "Export anyway?", kind: "warning", okLabel: "Export" },
-      ))
+        `${omitted} ${omitted === 1 ? "line has" : "lines have"} no timestamp or no text outside square brackets and will be left out.`,
+      shortened > 0 &&
+        `${shortened} ${shortened === 1 ? "line starts" : "lines start"} with text in square brackets, which players read as tags, so it will be removed.`,
+    ].filter(Boolean);
+    if (
+      warnings.length > 0 &&
+      !(await confirm(warnings.join("\n\n"), {
+        title: "Export anyway?",
+        kind: "warning",
+        okLabel: "Export",
+      }))
     ) {
       return;
     }

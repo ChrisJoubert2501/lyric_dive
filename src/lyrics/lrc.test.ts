@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   formatLrcTimestamp,
+  hasLeadingTag,
   linesOmittedFromLrc,
+  linesShortenedInLrc,
   parseLrc,
   parseLrcTimestamp,
   serializeLrc,
@@ -90,10 +92,39 @@ describe("linesOmittedFromLrc", () => {
   it("lists untimed lines and timed lines without text", () => {
     const untimed = createLine("untimed");
     const empty = createLine("", 2000);
+    const tagOnly = createLine("[Chorus]", 3000);
 
     expect(
-      linesOmittedFromLrc([createLine("kept", 1000), untimed, empty]),
-    ).toEqual([untimed, empty]);
+      linesOmittedFromLrc([createLine("kept", 1000), untimed, empty, tagOnly]),
+    ).toEqual([untimed, empty, tagOnly]);
+  });
+});
+
+describe("linesShortenedInLrc", () => {
+  it("lists exported lines that lose leading bracketed text", () => {
+    const shortened = createLine("[Chorus] a", 1000);
+
+    expect(
+      linesShortenedInLrc([
+        shortened,
+        createLine("[Chorus]", 2000),
+        createLine("[Chorus] untimed"),
+        createLine("b [c]", 3000),
+      ]),
+    ).toEqual([shortened]);
+  });
+});
+
+describe("hasLeadingTag", () => {
+  it.each([
+    ["[Chorus]", true],
+    ["  [Chorus] a", true],
+    ["[] a", true],
+    ["a [b]", false],
+    ["[unclosed", false],
+    ["", false],
+  ])("returns %j for %s", (text, expected) => {
+    expect(hasLeadingTag(text)).toBe(expected);
   });
 });
 
@@ -128,6 +159,36 @@ describe("serializeLrc", () => {
   it("skips timed lines without text, which would read back as end times", () => {
     const project = createProject();
     project.lines = [createLine("a", 1000), createLine(" ", 2000)];
+
+    expect(serializeLrc(project)).toBe("[00:01.00]a\n");
+  });
+
+  it("removes leading bracketed text, which players would read as tags", () => {
+    const project = createProject({ artist: "Artist" });
+    project.lines = [
+      createLine("a", 1000),
+      createLine("[ar:Someone] b", 2000),
+      createLine("[Chorus][x2]  c [d]", 3000),
+      createLine("[unclosed e", 4000),
+    ];
+
+    const lrc = serializeLrc(project);
+    expect(lrc).toBe(
+      [
+        "[ar:Artist]",
+        "[00:01.00]a",
+        "[00:02.00]b",
+        "[00:03.00]c [d]",
+        "[00:04.00][unclosed e",
+        "",
+      ].join("\n"),
+    );
+    expect(parseLrc(lrc).metadata.artist).toBe("Artist");
+  });
+
+  it("skips lines with only bracketed text, which would read back as end times", () => {
+    const project = createProject();
+    project.lines = [createLine("a", 1000), createLine("[Chorus]", 2000)];
 
     expect(serializeLrc(project)).toBe("[00:01.00]a\n");
   });
