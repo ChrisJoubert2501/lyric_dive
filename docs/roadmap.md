@@ -54,10 +54,14 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 
 **Goal:** keep original and translated lyrics together on the same timeline.
 
-- Translation provider behind an interface, so providers can be swapped
+Listed in the planned order; only the last items need a translation provider. See the [plan](notes/translation-plan.md) for the reasoning and the open questions.
+
+- Translation data model: each translation records the source text it was made from (schema version 2, with an ADR)
 - Side-by-side editing of original and translation
-- Translate the whole song or only selected lines
 - Flag translations whose source line changed since they were made
+- Choose a translation provider (ADR)
+- Translation provider behind an interface, so providers can be swapped
+- Translate the whole song or only selected lines
 - Store the API key securely (OS keychain), never in the project file
 
 **Done when:** a song can be machine-translated, corrected by hand, and the correction survives later edits to unrelated lines.
@@ -84,4 +88,5 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 ## Open questions
 
 - Which translation provider? Check its terms for processing copyrighted lyrics before choosing.
+- One translation language per song, or several? This decides where the target language is stored ([plan](notes/translation-plan.md#open-questions)).
 - Which platforms beyond Linux need to be supported, and when should they be tested?

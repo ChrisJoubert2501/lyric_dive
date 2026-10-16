@@ -61,4 +61,4 @@ If adopted, record it in an ADR that refines ADR 0006.
 
 - Pause or seek feels sluggish while syncing.
 - The errors start appearing during playback rather than only when a file is opened, or playback audibly glitches.
-- Playback speed control (Phase 2) is built, since it adds processing to the audio path.
+- Playback speed control (now under Ideas in the roadmap) is built, since it adds processing to the audio path.
