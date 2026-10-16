@@ -37,12 +37,17 @@ The frontend tests, type check and lint only need Node, so they work without the
 
 ## Project layout
 
-| Path          | Purpose                                                                                         |
-| ------------- | ----------------------------------------------------------------------------------------------- |
-| `src/lyrics/` | Lyrics data model, project edits, LRC import/export, and the lyrics UI.                         |
-| `src/audio/`  | Playback controls, and a hook that drives playback in Rust and polls its position.              |
-| `src/App.tsx` | Application shell: holds the project state and the keyboard shortcuts.                          |
-| `src-tauri/`  | Rust side: window, file dialog, MP3 decoding, audio playback, project file access and autosave. |
+| Path               | Purpose                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| `src/lyrics/`      | Lyrics data model, project edits, LRC import/export, and the lyrics UI.                         |
+| `src/audio/`       | Playback controls, and a hook that drives playback in Rust and polls its position.              |
+| `src/App.tsx`      | Application shell: holds the project state and handles the app-wide keyboard shortcuts.         |
+| `src/shortcuts.ts` | Every keyboard shortcut, its keys and description; the in-app help is generated from it.        |
+| `src-tauri/`       | Rust side: window, file dialog, MP3 decoding, audio playback, project file access and autosave. |
+
+## Keyboard shortcuts
+
+The whole sync workflow can be done from the keyboard. Press <kbd>?</kbd> in the app, or click _Keyboard shortcuts_, for the full list. Shortcuts are defined in one place, [`src/shortcuts.ts`](src/shortcuts.ts), which the in-app help is generated from, so add or change them there.
 
 ## Design decisions
 

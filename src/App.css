@@ -215,3 +215,44 @@ body {
   border-left-color: #2a7ae2;
   font-weight: 600;
 }
+
+.shortcut-help {
+  max-height: 85vh;
+  width: min(36rem, 90vw);
+  border: 1px solid rgb(128 128 128 / 0.4);
+  border-radius: 0.5rem;
+  color: inherit;
+  background-color: Canvas;
+}
+
+.shortcut-help::backdrop {
+  background-color: rgb(0 0 0 / 0.4);
+}
+
+.shortcut-help h2 {
+  margin-top: 0;
+}
+
+.shortcut-help h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.shortcut-help table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.shortcut-help td {
+  padding: 0.25rem 1rem 0.25rem 0;
+  vertical-align: top;
+}
+
+.shortcut-help td:first-child {
+  white-space: nowrap;
+}
+
+.shortcut-help form {
+  margin-top: 1.25rem;
+  text-align: right;
+}

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { shortcutLabel } from "../shortcuts";
+import { useKeyboardShortcuts } from "../useKeyboardShortcuts";
 
 interface LyricsInputProps {
   initialText?: string;
@@ -12,6 +14,13 @@ export function LyricsInput({
   onCancel,
 }: LyricsInputProps) {
   const [text, setText] = useState(initialText);
+  const canSubmit = text.trim().length > 0;
+
+  useKeyboardShortcuts({
+    submitLyrics: () => {
+      if (canSubmit) onSubmit(text);
+    },
+  });
 
   return (
     <form
@@ -29,7 +38,11 @@ export function LyricsInput({
         onChange={(event) => setText(event.target.value)}
       />
       <div className="actions">
-        <button type="submit" disabled={text.trim().length === 0}>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          title={shortcutLabel("submitLyrics")}
+        >
           Use these lyrics
         </button>
         {onCancel && (

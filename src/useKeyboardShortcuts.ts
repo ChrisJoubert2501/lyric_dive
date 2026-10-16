@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from "react";
+import { SHORTCUTS, type ShortcutAction } from "./shortcuts";
 
 // A clicked checkbox or slider keeps the focus, which would otherwise switch
 // off every shortcut until the user clicks elsewhere.
@@ -13,36 +14,36 @@ const NON_TEXT_INPUTS = new Set([
   "submit",
 ]);
 
-export interface Shortcut {
-  run: () => void;
-  /** Whether holding the key down runs the shortcut repeatedly. */
-  repeat?: boolean;
-  /**
-   * Whether the shortcut also works while typing in a text field. Off by
-   * default, so that the field keeps its own behaviour for the key, e.g.
-   * Space typing a space or Ctrl+Z undoing the typing.
-   */
-  inTextFields?: boolean;
-}
-
-/** Keyed by `shortcutName`, e.g. `" "`, `"Enter"` or `"Ctrl+s"`. */
-export type Shortcuts = Partial<Record<string, Shortcut>>;
+export type ShortcutHandlers = Partial<Record<ShortcutAction, () => void>>;
 
 type KeyState = Pick<
   KeyboardEvent,
   "key" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey"
 >;
 
-export function useKeyboardShortcuts(shortcuts: Shortcuts) {
+const ACTIONS_BY_KEY = new Map(
+  Object.entries(SHORTCUTS).flatMap(([action, { keys }]) =>
+    keys.map((key) => [key, action as ShortcutAction] as const),
+  ),
+);
+
+/** Runs the handlers for the shortcuts defined in `SHORTCUTS`. */
+export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    const shortcut = shortcuts[shortcutName(event)];
-    if (!shortcut) return;
-    if (!shortcut.inTextFields && isTextEntry(event.target)) return;
+    const action = ACTIONS_BY_KEY.get(shortcutName(event));
+    const run = action && handlers[action];
+    if (!run) return;
+    const { repeat, inTextFields } = SHORTCUTS[action];
+    if (!inTextFields && isTextEntry(event.target)) return;
+    // A modal dialog keeps its own keys, e.g. Escape closing it.
+    if (event.target instanceof Element && event.target.closest("dialog")) {
+      return;
+    }
 
     // Stops a focused button from also being clicked, e.g. Enter pausing
     // playback because the Play button still has focus.
     event.preventDefault();
-    if (!event.repeat || shortcut.repeat) shortcut.run();
+    if (!event.repeat || repeat) run();
   });
 
   useEffect(() => {
@@ -52,15 +53,18 @@ export function useKeyboardShortcuts(shortcuts: Shortcuts) {
 }
 
 /**
- * Cmd on macOS counts as Ctrl. Shift only counts together with Ctrl or Alt:
- * on its own it just changes the character a key types.
+ * Cmd on macOS counts as Ctrl. Shift does not count for a key that types a
+ * character on its own, because it just changes the character, e.g. `?`.
  */
 export function shortcutName(event: KeyState): string {
   const parts: string[] = [];
   if (event.ctrlKey || event.metaKey) parts.push("Ctrl");
   if (event.altKey) parts.push("Alt");
-  if (event.shiftKey && parts.length > 0) parts.push("Shift");
-  parts.push(event.key.length === 1 ? event.key.toLowerCase() : event.key);
+  const typesCharacter = event.key.length === 1;
+  if (event.shiftKey && (parts.length > 0 || !typesCharacter)) {
+    parts.push("Shift");
+  }
+  parts.push(typesCharacter ? event.key.toLowerCase() : event.key);
   return parts.join("+");
 }
 

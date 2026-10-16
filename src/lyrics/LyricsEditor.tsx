@@ -1,6 +1,8 @@
 import { useState, type Dispatch } from "react";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import type { PlaybackStatus } from "../audio/usePlayback";
+import { NUDGE_MS, shortcutLabel } from "../shortcuts";
+import { Keys } from "../ShortcutHelp";
 import { useKeyboardShortcuts } from "../useKeyboardShortcuts";
 import { useStoredState } from "../useStoredState";
 import { LineList, type LineEdit, type LineField } from "./LineList";
@@ -15,8 +17,6 @@ import {
 } from "./model";
 import { lineAfter, type ProjectAction } from "./project";
 import { reconcileLines } from "./reconcile";
-
-const NUDGE_MS = 50;
 
 interface LyricsEditorProps {
   lines: LyricLine[];
@@ -72,7 +72,10 @@ export function LyricsEditor({
 
   function selectLine(line: LyricLine) {
     setSelectedId(line.id);
-    const { startMs } = line;
+    seekToLine(line);
+  }
+
+  function seekToLine({ startMs }: LyricLine) {
     if (status && startMs !== null) run(() => seek(startMs));
   }
 
@@ -160,17 +163,28 @@ export function LyricsEditor({
     return true;
   }
 
+  function moveSelectedLine(offset: -1 | 1) {
+    if (selected) dispatch({ type: "lineMoved", id: selected.id, offset });
+  }
+
   useKeyboardShortcuts(
     showInput
       ? {}
       : {
-          Enter: { run: stampSelectedLine },
-          ArrowUp: { run: () => moveSelection(-1), repeat: true },
-          ArrowDown: { run: () => moveSelection(1), repeat: true },
-          ArrowLeft: { run: () => nudgeSelectedLine(-NUDGE_MS), repeat: true },
-          ArrowRight: { run: () => nudgeSelectedLine(NUDGE_MS), repeat: true },
-          Backspace: { run: clearSelectedTime },
-          f: { run: () => setFollow((follow) => !follow) },
+          seekToSelectedLine: () => selected && seekToLine(selected),
+          stampSelectedLine,
+          selectPreviousLine: () => moveSelection(-1),
+          selectNextLine: () => moveSelection(1),
+          nudgeEarlier: () => nudgeSelectedLine(-NUDGE_MS),
+          nudgeLater: () => nudgeSelectedLine(NUDGE_MS),
+          clearTime: clearSelectedTime,
+          toggleFollow: () => setFollow((follow) => !follow),
+          editText: () => selected && editLine(selected, "text"),
+          editTime: () => selected && editLine(selected, "time"),
+          insertLine,
+          moveLineUp: () => moveSelectedLine(-1),
+          moveLineDown: () => moveSelectedLine(1),
+          deleteLine: () => selected && deleteLine(selected),
         },
   );
 
@@ -191,11 +205,11 @@ export function LyricsEditor({
   return (
     <section className="lyrics">
       <p className="hint">
-        <kbd>Space</kbd> play/pause · <kbd>Enter</kbd> stamp and move on ·{" "}
-        <kbd>↑</kbd>
-        <kbd>↓</kbd> select · <kbd>←</kbd>
-        <kbd>→</kbd> nudge {NUDGE_MS} ms · <kbd>Backspace</kbd> clear time ·
-        double-click a time or text to edit it
+        <Keys action="togglePlayback" /> play/pause ·{" "}
+        <Keys action="stampSelectedLine" /> stamp and move on ·{" "}
+        <Keys action="selectPreviousLine" />
+        <Keys action="selectNextLine" /> select ·{" "}
+        <Keys action="showShortcuts" /> all keyboard shortcuts
       </p>
       <label className="follow">
         <input
@@ -203,13 +217,14 @@ export function LyricsEditor({
           checked={follow}
           onChange={(event) => setFollow(event.target.checked)}
         />
-        Follow lyrics while playing <kbd>F</kbd>
+        Follow lyrics while playing <Keys action="toggleFollow" />
       </label>
       <div className="line-actions" role="toolbar" aria-label="Selected line">
         <button
           type="button"
           disabled={!timed}
           onClick={() => nudgeSelectedLine(-NUDGE_MS)}
+          title={shortcutLabel("nudgeEarlier")}
         >
           −{NUDGE_MS} ms
         </button>
@@ -217,6 +232,7 @@ export function LyricsEditor({
           type="button"
           disabled={!timed}
           onClick={() => nudgeSelectedLine(NUDGE_MS)}
+          title={shortcutLabel("nudgeLater")}
         >
           +{NUDGE_MS} ms
         </button>
@@ -224,10 +240,16 @@ export function LyricsEditor({
           type="button"
           disabled={!selected}
           onClick={() => selected && editLine(selected, "time")}
+          title={shortcutLabel("editTime")}
         >
           Edit time
         </button>
-        <button type="button" disabled={!timed} onClick={clearSelectedTime}>
+        <button
+          type="button"
+          disabled={!timed}
+          onClick={clearSelectedTime}
+          title={shortcutLabel("clearTime")}
+        >
           Clear time
         </button>
         <span className="separator" />
@@ -235,29 +257,30 @@ export function LyricsEditor({
           type="button"
           disabled={!selected}
           onClick={() => selected && editLine(selected, "text")}
+          title={shortcutLabel("editText")}
         >
           Edit text
         </button>
-        <button type="button" onClick={insertLine}>
+        <button
+          type="button"
+          onClick={insertLine}
+          title={shortcutLabel("insertLine")}
+        >
           Insert below
         </button>
         <button
           type="button"
           disabled={selectedIndex <= 0}
-          onClick={() =>
-            selected &&
-            dispatch({ type: "lineMoved", id: selected.id, offset: -1 })
-          }
+          onClick={() => moveSelectedLine(-1)}
+          title={shortcutLabel("moveLineUp")}
         >
           Move up
         </button>
         <button
           type="button"
           disabled={selectedIndex === -1 || selectedIndex === lines.length - 1}
-          onClick={() =>
-            selected &&
-            dispatch({ type: "lineMoved", id: selected.id, offset: 1 })
-          }
+          onClick={() => moveSelectedLine(1)}
+          title={shortcutLabel("moveLineDown")}
         >
           Move down
         </button>
@@ -265,6 +288,7 @@ export function LyricsEditor({
           type="button"
           disabled={!selected}
           onClick={() => selected && deleteLine(selected)}
+          title={shortcutLabel("deleteLine")}
         >
           Delete
         </button>

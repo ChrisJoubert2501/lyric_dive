@@ -14,9 +14,14 @@ describe("shortcutName", () => {
     expect(shortcutName({ ...plain, key: " " })).toBe(" ");
   });
 
-  it("ignores Shift on its own", () => {
-    expect(shortcutName({ ...plain, key: "Enter", shiftKey: true })).toBe(
-      "Enter",
+  it("ignores Shift on its own for keys that type a character", () => {
+    expect(shortcutName({ ...plain, key: "?", shiftKey: true })).toBe("?");
+    expect(shortcutName({ ...plain, key: "E", shiftKey: true })).toBe("e");
+  });
+
+  it("counts Shift on its own for keys that do not type a character", () => {
+    expect(shortcutName({ ...plain, key: "ArrowLeft", shiftKey: true })).toBe(
+      "Shift+ArrowLeft",
     );
   });
 

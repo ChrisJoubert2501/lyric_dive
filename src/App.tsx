@@ -24,6 +24,8 @@ import {
 } from "./lyrics/projectFile";
 import { canRedo, canUndo, createHistory } from "./history";
 import { fileName, withExtension } from "./paths";
+import { shortcutLabel, SKIP_MS } from "./shortcuts";
+import { ShortcutHelp } from "./ShortcutHelp";
 import { useAutosave, type Recovery } from "./useAutosave";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import "./App.css";
@@ -63,6 +65,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  const [showingShortcuts, setShowingShortcuts] = useState(false);
   // React runs effects twice in development, which would otherwise start twice.
   const startRequested = useRef(false);
   const { status, load, unload, play, pause, seek, refresh } = usePlayback();
@@ -155,6 +158,15 @@ function App() {
   function togglePlayback() {
     if (!status) return;
     run(status.playing ? pause : play);
+  }
+
+  function skip(deltaMs: number) {
+    if (!status) return;
+    const positionMs = Math.min(
+      Math.max(status.positionMs + deltaMs, 0),
+      status.durationMs,
+    );
+    run(() => seek(positionMs));
   }
 
   /** Returns whether to go ahead, i.e. the changes were saved or discarded. */
@@ -334,16 +346,25 @@ function App() {
   const redo = () => dispatch({ type: "redo" });
 
   useKeyboardShortcuts({
-    " ": { run: togglePlayback },
-    "Ctrl+z": { run: undo, repeat: true },
-    "Ctrl+Shift+z": { run: redo, repeat: true },
-    "Ctrl+y": { run: redo, repeat: true },
-    "Ctrl+n": { run: () => run(newProject), inTextFields: true },
-    "Ctrl+o": { run: () => run(openProject), inTextFields: true },
-    "Ctrl+s": { run: () => run(() => saveProject(false)), inTextFields: true },
-    "Ctrl+Shift+s": {
-      run: () => run(() => saveProject(true)),
-      inTextFields: true,
+    togglePlayback,
+    skipBack: () => skip(-SKIP_MS),
+    skipForward: () => skip(SKIP_MS),
+    undo,
+    redo,
+    newProject: () => run(newProject),
+    openProject: () => run(openProject),
+    saveProject: () => run(() => saveProject(false)),
+    saveProjectAs: () => run(() => saveProject(true)),
+    openAudio: () => {
+      if (!loading) run(chooseAudioFile);
+    },
+    importLrc: () => run(importLrc),
+    exportLrc: () => run(exportLrc),
+    showShortcuts: () => setShowingShortcuts(true),
+    leaveTextField: () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     },
   });
 
@@ -352,22 +373,46 @@ function App() {
       <header className="toolbar">
         <h1>Lyric Dive</h1>
         <div className="actions">
-          <button type="button" onClick={() => run(newProject)}>
+          <button
+            type="button"
+            onClick={() => run(newProject)}
+            title={shortcutLabel("newProject")}
+          >
             New project
           </button>
-          <button type="button" onClick={() => run(openProject)}>
+          <button
+            type="button"
+            onClick={() => run(openProject)}
+            title={shortcutLabel("openProject")}
+          >
             Open project…
           </button>
-          <button type="button" onClick={() => run(() => saveProject(false))}>
+          <button
+            type="button"
+            onClick={() => run(() => saveProject(false))}
+            title={shortcutLabel("saveProject")}
+          >
             Save
           </button>
-          <button type="button" onClick={() => run(() => saveProject(true))}>
+          <button
+            type="button"
+            onClick={() => run(() => saveProject(true))}
+            title={shortcutLabel("saveProjectAs")}
+          >
             Save as…
           </button>
-          <button type="button" onClick={() => run(importLrc)}>
+          <button
+            type="button"
+            onClick={() => run(importLrc)}
+            title={shortcutLabel("importLrc")}
+          >
             Import LRC…
           </button>
-          <button type="button" onClick={() => run(exportLrc)}>
+          <button
+            type="button"
+            onClick={() => run(exportLrc)}
+            title={shortcutLabel("exportLrc")}
+          >
             Export LRC…
           </button>
         </div>
@@ -376,7 +421,7 @@ function App() {
             type="button"
             onClick={undo}
             disabled={!canUndo(history)}
-            title="Ctrl+Z"
+            title={shortcutLabel("undo")}
           >
             Undo
           </button>
@@ -384,9 +429,16 @@ function App() {
             type="button"
             onClick={redo}
             disabled={!canRedo(history)}
-            title="Ctrl+Shift+Z or Ctrl+Y"
+            title={shortcutLabel("redo")}
           >
             Redo
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowingShortcuts(true)}
+            title={shortcutLabel("showShortcuts")}
+          >
+            Keyboard shortcuts
           </button>
         </div>
         <span className="project-name">
@@ -400,6 +452,7 @@ function App() {
           type="button"
           onClick={() => run(chooseAudioFile)}
           disabled={loading}
+          title={shortcutLabel("openAudio")}
         >
           {project.audioPath ? "Change MP3…" : "Open MP3…"}
         </button>
@@ -439,6 +492,9 @@ function App() {
         refresh={refresh}
         run={run}
       />
+      {showingShortcuts && (
+        <ShortcutHelp onClose={() => setShowingShortcuts(false)} />
+      )}
     </main>
   );
 }

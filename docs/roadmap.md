@@ -2,7 +2,7 @@
 
 Each phase has a goal and a "done when" condition. A phase is finished when its condition is met, not when every listed feature exists; features that turn out to be unnecessary get dropped, and new ones get added as we learn.
 
-**Current phase: 2 — Editing comfort**
+**Current phase: 3 — Translation**
 
 ## Phase 0 — Foundation
 
@@ -44,12 +44,9 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 - [x] Warn about unsaved changes when the window is closed
 - [x] Keep the timestamps of unchanged lines when replacing the lyrics
 - [x] Warn about lines that start with `[` (e.g. `[Chorus]`), which LRC reads as tags
-- [ ] A documented keyboard shortcut scheme
+- [x] A documented keyboard shortcut scheme
 - [x] Turn off following the active line during playback, to look at other lines (remembered between sessions)
 - [x] Reopen the last project on start ([ADR 0009](decisions/0009-remember-the-last-project-in-rust.md))
-- [ ] Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
-- [ ] Waveform view for fine-tuning timestamps
-- [ ] Playback speed control for fast passages
 
 **Done when:** syncing a song requires no mouse for the common path, and no work is lost on a crash or accidental edit.
 
@@ -76,6 +73,9 @@ Each phase has a goal and a "done when" condition. A phase is finished when its 
 
 ## Ideas (not scheduled)
 
+- Read embedded MP3 tags (e.g. with the Rust `lofty` crate)
+- Waveform view for fine-tuning timestamps
+- Playback speed control for fast passages; needs time-stretching in Rust, as playback is native ([ADR 0006](decisions/0006-native-rust-playback.md))
 - Automatic transcription for draft lyrics
 - Song library view (may justify revisiting ADR 0002)
 - Audio formats beyond MP3
